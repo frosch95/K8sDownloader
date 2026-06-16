@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Desktop app to browse and download files from Kubernetes pods",
   "private": true,
+  "packageManager": "pnpm@11.2.2",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
