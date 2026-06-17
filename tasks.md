@@ -18,3 +18,5 @@
 * [x] **Feature 8:** Support downloading files from both Linux and Windows pods.
 * [x] **Feature 9:** Make the sidebar resizable.
 * [x] **Feature 10:** Toggle between dark mode and light mode.
+* [x] **Tests:** Add component tests (FileExplorer, ContextSelector, NamespaceSelector, PodSelector, ErrorDialog, ThemeToggle, ErrorBoundary) – 10 test files, 104 tests.
+* [x] **Improvement:** Wrap top-level components with ErrorBoundary to catch render errors gracefully.

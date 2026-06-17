@@ -16,6 +16,7 @@ A desktop application to browse and download files from Kubernetes pods — buil
 | 8 | **Cross-Platform Pods** | File listing and download work on both Linux and Windows containers — automatic fallback |
 | 9 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
 | 10 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
+| 11 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
 
 ## Architecture
 
@@ -56,7 +57,7 @@ A desktop application to browse and download files from Kubernetes pods — buil
 | Styling | Tailwind CSS 3 (dark mode) |
 | Build | Vite 6 + vite-plugin-electron |
 | Package Manager | PNPM |
-| Testing | Vitest + @testing-library/react |
+| Testing | Vitest + @testing-library/react (104 tests across 10 files) |
 | Linting | ESLint + TypeScript plugin |
 | K8s API | kubectl CLI (spawnSync) |
 
@@ -153,11 +154,19 @@ k8sdownloader/
     ├── test-setup.ts
     ├── components/
     │   ├── ContextSelector.tsx   # K8s context dropdown
+    │   ├── ContextSelector.test.tsx
     │   ├── NamespaceSelector.tsx # Namespace dropdown
+    │   ├── NamespaceSelector.test.tsx
     │   ├── PodSelector.tsx       # Pod list + search + status
+    │   ├── PodSelector.test.tsx
     │   ├── FileExplorer.tsx      # File table + breadcrumbs + download
+    │   ├── FileExplorer.test.tsx
     │   ├── ErrorDialog.tsx       # Modal error overlay
-    │   └── ThemeToggle.tsx       # Dark/light mode toggle button
+    │   ├── ErrorDialog.test.tsx
+    │   ├── ErrorBoundary.tsx     # React error boundary with fallback UI
+    │   ├── ErrorBoundary.test.tsx
+    │   ├── ThemeToggle.tsx       # Dark/light mode toggle button
+    │   └── ThemeToggle.test.tsx
     ├── hooks/
     │   ├── useKubeConfig.ts      # Context loading state
     │   ├── useNamespaces.ts      # Namespace loading state
@@ -170,8 +179,8 @@ k8sdownloader/
     └── utils/
         ├── api.ts                # Electron IPC wrappers
         ├── api.test.ts           # API module tests
-    │   ├── kubeconfig.ts         # Formatting, filtering, sorting, ls/dir parsers
-    │   └── kubeconfig.test.ts    # Utility function tests (38 tests)
+        ├── kubeconfig.ts         # Formatting, filtering, sorting, ls/dir parsers
+        └── kubeconfig.test.ts    # Utility function tests (33 tests)
 ```
 
 ## Security

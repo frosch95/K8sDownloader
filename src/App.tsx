@@ -3,6 +3,7 @@ import { ContextSelector } from "./components/ContextSelector";
 import { NamespaceSelector } from "./components/NamespaceSelector";
 import { PodSelector } from "./components/PodSelector";
 import { FileExplorer } from "./components/FileExplorer";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ErrorDialog } from "./components/ErrorDialog";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useKubeConfig } from "./hooks/useKubeConfig";
@@ -141,27 +142,33 @@ function App() {
           style={{ width: sidebarWidth }}
         >
           <div className="flex-1 overflow-y-auto p-4 space-y-5">
-            <ContextSelector
-              contexts={ctx.contexts}
-              selected={ctx.selected}
-              loading={ctx.loading}
-              onSelect={ctx.setSelected}
-              onRefresh={ctx.reload}
-            />
-            <NamespaceSelector
-              namespaces={ns.namespaces}
-              selected={ns.selected}
-              loading={ns.loading}
-              disabled={!ctx.selected}
-              onSelect={ns.setSelected}
-            />
-            <PodSelector
-              pods={pods.pods}
-              selected={pods.selected}
-              loading={pods.loading}
-              disabled={!ns.selected}
-              onSelect={handlePodSelect}
-            />
+            <ErrorBoundary>
+              <ContextSelector
+                contexts={ctx.contexts}
+                selected={ctx.selected}
+                loading={ctx.loading}
+                onSelect={ctx.setSelected}
+                onRefresh={ctx.reload}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <NamespaceSelector
+                namespaces={ns.namespaces}
+                selected={ns.selected}
+                loading={ns.loading}
+                disabled={!ctx.selected}
+                onSelect={ns.setSelected}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <PodSelector
+                pods={pods.pods}
+                selected={pods.selected}
+                loading={pods.loading}
+                disabled={!ns.selected}
+                onSelect={handlePodSelect}
+              />
+            </ErrorBoundary>
           </div>
 
           <div className="shrink-0 px-4 py-3 border-t border-k8s-border">
@@ -180,19 +187,21 @@ function App() {
 
         {/* File explorer area */}
         <main className="flex-1 flex flex-col min-w-0">
-          <FileExplorer
-            files={fs.files}
-            currentPath={fs.currentPath}
-            loading={fs.loading}
-            disabled={!pods.selected}
-            contextName={ctx.selected}
-            namespace={ns.selected}
-            podName={pods.selected?.name ?? ""}
-            containerName={pods.selected?.containers?.[0] ?? null}
-            onNavigate={handleNavigate}
-            onBack={handleBack}
-            onError={setGlobalError}
-          />
+          <ErrorBoundary>
+            <FileExplorer
+              files={fs.files}
+              currentPath={fs.currentPath}
+              loading={fs.loading}
+              disabled={!pods.selected}
+              contextName={ctx.selected}
+              namespace={ns.selected}
+              podName={pods.selected?.name ?? ""}
+              containerName={pods.selected?.containers?.[0] ?? null}
+              onNavigate={handleNavigate}
+              onBack={handleBack}
+              onError={setGlobalError}
+            />
+          </ErrorBoundary>
         </main>
       </div>
 
