@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "electron:dev": "vite",
     "electron:build": "pnpm build && electron-builder",
+    "electron:start": "electron .",
+    "start": "pnpm build && pnpm electron:start",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "test": "vitest run",
@@ -20,7 +22,9 @@
   "dependencies": {
     "@kubernetes/client-node": "^0.22.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-window": "^2.2.7",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.0",
@@ -31,7 +35,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
-    "concurrently": "^9.0.0",
+    "concurrently": "^9.2.1",
     "electron": "^39.8.5",
     "electron-builder": "^25.0.0",
     "eslint": "^8.57.0",
@@ -43,8 +47,9 @@
     "vite": "^6.0.0",
     "vite-plugin-electron": "^0.28.0",
     "vite-plugin-electron-renderer": "^0.14.0",
+    "vite-plugin-html": "^3.2.2",
     "vitest": "^3.2.6",
-    "wait-on": "^8.0.0"
+    "wait-on": "^8.0.5"
   },
   "build": {
     "appId": "com.k8sdownloader.app",
@@ -57,15 +62,22 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "public/icon.ico"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "public/icon.icns"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "public/icon.png",
       "maintainer": "abi@love2co.de"
     }

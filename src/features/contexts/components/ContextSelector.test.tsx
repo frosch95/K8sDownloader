@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ContextSelector } from "./ContextSelector";
-import type { ContextInfo } from "../types";
+import type { ContextInfo } from "../../../shared/types/kubernetes";
 
 const sampleContexts: ContextInfo[] = [
   { name: "prod-cluster", cluster: "prod-eu", user: "admin" },

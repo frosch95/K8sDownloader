@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { PodSelector } from "./PodSelector";
-import type { PodInfo } from "../types";
+import type { PodInfo } from "../../../shared/types/kubernetes";
 
 const samplePods: PodInfo[] = [
   { name: "nginx-deployment-abc", namespace: "default", status: "Running", containers: ["nginx"] },

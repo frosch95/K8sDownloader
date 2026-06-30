@@ -1,23 +1,24 @@
-import { useCallback, useState } from "react";
-import { saveAndDownload } from "../utils/api";
-import { formatFileSize, getFileIcon, getParentPath } from "../utils/kubeconfig";
-import type { FileEntry } from "../types";
+import { useCallback, useState, memo } from "react";
+import { saveAndDownload } from "../../../utils/api";
+import { formatFileSize, getFileIcon, getParentPath } from "../../../utils/kubeconfig";
+import type { FileEntry } from "../../../shared/types/kubernetes";
+import { MemoizedFileRow } from "./FileRow";
 
 interface FileExplorerProps {
   files: FileEntry[];
   currentPath: string;
   loading: boolean;
   disabled: boolean;
-  contextName: string;
-  namespace: string;
-  podName: string;
+  contextName: string | null;
+  namespace: string | null;
+  podName: string | null;
   containerName: string | null;
   onNavigate: (dirPath: string) => void;
   onBack: (dirPath: string) => void;
   onError: (message: string) => void;
 }
 
-export function FileExplorer({
+export const FileExplorer = memo(function FileExplorer({
   files,
   currentPath,
   loading,
@@ -44,6 +45,9 @@ export function FileExplorer({
       if (entry.isDir) return;
       setDownloading(entry.name);
       try {
+        if (!contextName || !namespace || !podName) {
+          throw new Error("Missing required parameters for file download");
+        }
         await saveAndDownload(
           contextName,
           namespace,
@@ -150,61 +154,13 @@ export function FileExplorer({
             </thead>
             <tbody className="divide-y divide-k8s-border/30">
               {files.map((entry) => (
-                <tr
+                <MemoizedFileRow
                   key={entry.path}
-                  className={`transition-colors ${
-                    entry.isDir
-                      ? "hover:bg-k8s-surface/30 cursor-pointer"
-                      : "hover:bg-k8s-surface/20"
-                  }`}
-                  onDoubleClick={() => entry.isDir && onNavigate(entry.path)}
-                >
-                  <td className="px-4 py-2.5">
-                    <button
-                      onClick={() => entry.isDir && onNavigate(entry.path)}
-                      className="flex items-center gap-2 text-left w-full"
-                      disabled={!entry.isDir}
-                    >
-                      <span className="text-lg">{getFileIcon(entry.isDir)}</span>
-                      <span
-                        className={`truncate max-w-[250px] sm:max-w-[400px] ${
-                          entry.isDir ? "text-k8s-blue font-medium" : "text-k8s-text"
-                        }`}
-                      >
-                        {entry.name}
-                      </span>
-                    </button>
-                  </td>
-                  <td className="px-4 py-2.5 text-k8s-muted hidden sm:table-cell">
-                    {entry.isDir ? "—" : formatFileSize(entry.size)}
-                  </td>
-                  <td className="px-4 py-2.5 text-k8s-muted hidden md:table-cell">
-                    {entry.modified}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {!entry.isDir && (
-                      <button
-                        onClick={() => handleDownload(entry)}
-                        disabled={downloading === entry.name}
-                        className="p-1.5 rounded-lg hover:bg-k8s-blue/10 text-k8s-blue transition-colors disabled:opacity-40"
-                        title="Download file"
-                      >
-                        {downloading === entry.name ? (
-                          <span className="animate-spin inline-block">⏳</span>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                  entry={entry}
+                  onNavigate={onNavigate}
+                  onDownload={handleDownload}
+                  downloading={downloading}
+                />
               ))}
             </tbody>
           </table>
@@ -222,4 +178,4 @@ export function FileExplorer({
       </div>
     </div>
   );
-}
+});

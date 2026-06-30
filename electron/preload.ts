@@ -1,29 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-
-export interface ContextInfo {
-  name: string;
-  cluster: string;
-  user: string;
-}
-
-export interface NamespaceInfo {
-  name: string;
-}
-
-export interface PodInfo {
-  name: string;
-  namespace: string;
-  status: string;
-  containers: string[];
-}
-
-export interface FileEntry {
-  name: string;
-  path: string;
-  isDir: boolean;
-  size: number;
-  modified: string;
-}
+import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../src/shared/types/kubernetes";
 
 const electronAPI = {
   getContexts: (): Promise<ContextInfo[]> =>

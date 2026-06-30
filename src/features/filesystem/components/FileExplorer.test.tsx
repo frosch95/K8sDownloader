@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FileExplorer } from "./FileExplorer";
-import type { FileEntry } from "../types";
+import type { FileEntry } from "../../../shared/types/kubernetes";
 
 const sampleFiles: FileEntry[] = [
   { name: "src", path: "/src", isDir: true, size: 0, modified: "Jun 1 12:00" },

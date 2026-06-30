@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { NamespaceSelector } from "./NamespaceSelector";
-import type { NamespaceInfo } from "../types";
+import type { NamespaceInfo } from "../../../shared/types/kubernetes";
 
 const sampleNamespaces: NamespaceInfo[] = [
   { name: "default" },

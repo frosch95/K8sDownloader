@@ -1,14 +1,15 @@
-import type { NamespaceInfo } from "../types";
+import type { NamespaceInfo } from "../../../shared/types/kubernetes";
+import { memo } from "react";
 
 interface NamespaceSelectorProps {
   namespaces: NamespaceInfo[];
-  selected: string;
+  selected: string | null;
   loading: boolean;
   disabled: boolean;
   onSelect: (name: string) => void;
 }
 
-export function NamespaceSelector({
+export const NamespaceSelector = memo(function NamespaceSelector({
   namespaces,
   selected,
   loading,
@@ -28,7 +29,7 @@ export function NamespaceSelector({
         </div>
       ) : (
         <select
-          value={selected}
+          value={selected || ''}
           onChange={(e) => onSelect(e.target.value)}
           disabled={disabled || namespaces.length === 0}
           className="w-full bg-k8s-darker border border-k8s-border rounded-lg px-4 py-2.5 text-sm text-k8s-text
@@ -50,4 +51,4 @@ export function NamespaceSelector({
       )}
     </div>
   );
-}
+});

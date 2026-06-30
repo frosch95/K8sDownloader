@@ -1,5 +1,5 @@
 interface ThemeToggleProps {
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "system";
   onToggle: () => void;
 }
 

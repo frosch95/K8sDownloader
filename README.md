@@ -1,6 +1,24 @@
 # ☸️ K8sDownloader
 
-A desktop application to browse and download files from Kubernetes pods — built for users not familiar with `kubectl` who need a simple file-browser experience.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.2.3-blue.svg)](https://github.com/frosch95/k8sdownloader/releases)
+[![Electron](https://img.shields.io/badge/electron-39.8.5-blue.svg)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/react-19.0.0-blue.svg)](https://reactjs.org/)
+
+**Desktop app to browse and download files from Kubernetes pods**
+
+## Features
+
+✅ **Kubernetes Context Management** - View and switch between multiple kubeconfig contexts
+✅ **Namespace Browsing** - Explore all namespaces in your cluster
+✅ **Pod Selection** - View pods and their status with color-coded badges
+✅ **File System Navigation** - Browse pod file systems with breadcrumb navigation
+✅ **File Download** - Download individual files from pods
+✅ **Dark/Light Mode** - Toggle between themes with localStorage persistence
+✅ **Responsive Design** - Works on different screen sizes
+✅ **Cross-Platform** - Supports Linux and Windows pods
+✅ **Error Handling** - Comprehensive error boundaries and user-friendly messages
+✅ **Performance Optimized** - Memoized components and debounced inputs
 
 ## Features
 
@@ -17,49 +35,28 @@ A desktop application to browse and download files from Kubernetes pods — buil
 | 9 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
 | 10 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
 | 11 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
+| 12 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
 
-## Architecture
+## Architecture Highlights
 
-```
-┌──────────────────────────────────────────────────────┐
-│                  Electron Shell                       │
-│  ┌─────────────────────┐  ┌────────────────────────┐ │
-│  │   Renderer Process   │  │    Main Process         │ │
-│  │   (React 19 + TS)    │  │    (Node.js)            │ │
-│  │                      │  │                         │ │
-│  │  ContextSelector     │  │  get-contexts           │ │
-│  │  NamespaceSelector   │  │  get-namespaces         │ │
-│  │  PodSelector         │  │  get-pods               │ │
-│  │  FileExplorer        │  │  list-files             │ │
-│  │  ErrorDialog         │  │  download-file          │ │
-│  └──────────┬───────────┘  └───────────┬─────────────┘ │
-│             │  contextBridge            │               │
-│             └───────────────────────────┘               │
-└───────────────────────────────────────────────────────┘
-                        │
-              ┌──  kubectl CLI      │
-              │  (spawnSync, no     │
-              │   shell escaping)   │
-              │  + kubectl CLI     │
-              └─────────┬─────────┘
-                        │
-              ┌─────────▼─────────┐
-              │  Kubernetes API    │
-              └───────────────────┘
-```
+📦 **Feature-based Organization** - Vertical slices for better maintainability
+🧠 **Zustand State Management** - Centralized state with no prop drilling
+🔧 **Service Layer** - Clean abstraction over Electron API calls
+📝 **Shared Types** - Centralized TypeScript types
+🚀 **Performance Optimized** - Memoization, debouncing, code splitting
 
-### Technology Stack
+For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-| Layer | Technology |
-|-------|-----------|
-| Shell | Electron 33 |
-| Frontend | React 19, TypeScript 5 |
-| Styling | Tailwind CSS 3 (dark mode) |
-| Build | Vite 6 + vite-plugin-electron |
-| Package Manager | PNPM |
-| Testing | Vitest + @testing-library/react (104 tests across 10 files) |
-| Linting | ESLint + TypeScript plugin |
-| K8s API | kubectl CLI (spawnSync) |
+### Key Technologies
+
+- **Electron** - Cross-platform desktop framework
+- **React 19** - Modern UI library with hooks
+- **TypeScript** - Type-safe JavaScript
+- **Zustand** - Lightweight state management
+- **Vite** - Fast build tool
+- **Tailwind CSS** - Utility-first CSS framework
+- **Vitest** - Fast unit testing
+- **React Testing Library** - Component testing
 
 ### IPC Channels
 
@@ -124,64 +121,123 @@ pnpm electron:build --linux
 ```
 Output: AppImage (`.AppImage`) and Debian package (`.deb`)
 
-## Project Structure
+## New Project Structure (Improved Architecture)
 
 ```
-k8sdownloader/
-├── index.html                    # Vite entry HTML
-├── package.json                  # Dependencies & scripts
-├── tsconfig.json                 # TypeScript config (renderer)
-├── tsconfig.node.json            # TypeScript config (main + Vite)
-├── vite.config.ts                # Vite + electron plugins
-├── tailwind.config.js            # Tailwind theme (dark mode)
-├── postcss.config.js             # PostCSS for Tailwind
-├── .eslintrc.json                # ESLint configuration
-├── .gitignore
-├── README.md
-├── requirements.md               # Project requirements
-├── tasks.md                      # Task backlog
-│
-├── electron/                     # Electron main process
-│   ├── main.ts                   # App entry, window creation, IPC
-│   ├── preload.ts                # contextBridge API exposure
-│   └── kubernetes.ts             # K8s API calls (all via kubectl CLI)
-│
-└── src/                          # React renderer
-    ├── main.tsx                  # React entry point
-    ├── App.tsx                   # Root component
-    ├── index.css                 # Global styles + Tailwind
-    ├── vite-env.d.ts
-    ├── test-setup.ts
-    ├── components/
-    │   ├── ContextSelector.tsx   # K8s context dropdown
-    │   ├── ContextSelector.test.tsx
-    │   ├── NamespaceSelector.tsx # Namespace dropdown
-    │   ├── NamespaceSelector.test.tsx
-    │   ├── PodSelector.tsx       # Pod list + search + status
-    │   ├── PodSelector.test.tsx
-    │   ├── FileExplorer.tsx      # File table + breadcrumbs + download
-    │   ├── FileExplorer.test.tsx
-    │   ├── ErrorDialog.tsx       # Modal error overlay
-    │   ├── ErrorDialog.test.tsx
-    │   ├── ErrorBoundary.tsx     # React error boundary with fallback UI
-    │   ├── ErrorBoundary.test.tsx
-    │   ├── ThemeToggle.tsx       # Dark/light mode toggle button
-    │   └── ThemeToggle.test.tsx
-    ├── hooks/
-    │   ├── useKubeConfig.ts      # Context loading state
-    │   ├── useNamespaces.ts      # Namespace loading state
-    │   ├── usePods.ts            # Pod loading state
-    │   ├── useFileSystem.ts      # File navigation state
-    │   ├── useTheme.ts           # Dark/light theme with localStorage persistence
-    │   └── useTheme.test.ts      # Theme hook tests
-    ├── types/
-    │   └── index.ts              # Shared TypeScript interfaces
-    └── utils/
-        ├── api.ts                # Electron IPC wrappers
-        ├── api.test.ts           # API module tests
-        ├── kubeconfig.ts         # Formatting, filtering, sorting, ls/dir parsers
-        └── kubeconfig.test.ts    # Utility function tests (33 tests)
+src/
+├── app/                    # Application shell
+│   └── layout/              # Main layout components
+├── features/              # Feature-based organization
+│   ├── contexts/          # Context selection feature
+│   │   ├── components/     # ContextSelector component
+│   │   ├── hooks/          # useContexts hook
+│   │   └── types/          # Feature-specific types
+│   ├── namespaces/        # Namespace selection feature
+│   │   ├── components/     # NamespaceSelector component
+│   │   ├── hooks/          # useNamespaces hook
+│   │   └── types/          # Feature-specific types
+│   ├── pods/              # Pod selection feature
+│   │   ├── components/     # PodSelector component
+│   │   ├── hooks/          # usePods hook
+│   │   └── types/          # Feature-specific types
+│   ├── filesystem/        # File system browsing feature
+│   │   ├── components/     # FileExplorer, FileRow components
+│   │   ├── hooks/          # useFileSystem hook
+│   │   └── utils/          # File system utilities
+│   └── ui/                # Shared UI components
+│       ├── components/     # Button, Input, Select, etc.
+│       ├── hooks/          # useTheme hook
+│       └── types/          # UI-specific types
+├── shared/               # Shared code
+│   ├── types/             # Centralized TypeScript types
+│   │   ├── kubernetes.ts  # Kubernetes-related types
+│   │   ├── api.ts          # API-related types
+│   │   ├── errors.ts       # Error handling types
+│   │   └── index.ts        # Type re-exports
+│   ├── constants/         # Shared constants
+│   │   └── index.ts        # UI constants, timeouts, etc.
+│   └── utils/             # Utility functions
+├── services/             # Service layer
+│   └── kubernetesService.ts # Kubernetes service abstraction
+├── stores/               # State management
+│   ├── kubeStore.ts       # Centralized Kubernetes state
+│   └── uiStore.ts         # UI state management
+└── main.tsx              # Entry point
+
+electron/
+├── main.ts               # Electron main process
+├── preload.ts            # Preload script with type safety
+└── kubernetes.ts         # Kubernetes operations
 ```
+
+## State Management
+
+The application uses **Zustand** for centralized state management:
+
+### KubeStore
+
+Manages all Kubernetes-related state:
+- Contexts (loading, error, selected)
+- Namespaces (loading, error, selected)
+- Pods (loading, error, selected)
+- File system (files, navigation history, loading, error)
+- Global error handling
+
+### UIStore
+
+Manages UI-related state:
+- Theme (light/dark/system)
+- Theme persistence
+
+## Service Layer
+
+The `KubernetesService` provides a clean interface for all Kubernetes operations:
+
+```typescript
+// Example usage
+const contexts = await KubernetesService.getContexts();
+const namespaces = await KubernetesService.getNamespaces(contextName);
+const pods = await KubernetesService.getPods(contextName, namespace);
+const files = await KubernetesService.listFiles(contextName, namespace, podName, containerName, dirPath);
+await KubernetesService.downloadFile(contextName, namespace, podName, containerName, sourcePath, defaultFileName);
+```
+
+## Error Handling
+
+Structured error handling with `AppError` class:
+
+```typescript
+export enum ErrorCode {
+  KUBECONFIG_NOT_FOUND,
+  KUBECTL_NOT_INSTALLED,
+  KUBECTL_EXEC_FAILED,
+  CONTEXT_NOT_FOUND,
+  NAMESPACE_NOT_FOUND,
+  POD_NOT_FOUND,
+  CONTAINER_NOT_FOUND,
+  FILE_NOT_FOUND,
+  PERMISSION_DENIED,
+  NETWORK_ERROR,
+  TIMEOUT,
+  UNKNOWN_ERROR,
+}
+```
+
+## UI Components
+
+Reusable UI components available in `@features/ui/components`:
+
+- **Button** - Primary, secondary, ghost, danger variants
+- **Input** - Form input with validation
+- **Select** - Dropdown select
+- **Badge** - Status indicators
+- **Tooltip** - Hover tooltips
+- **EmptyState** - Empty state placeholders
+- **ProgressBar** - Progress indicators
+- **LoadingSpinner** - Loading animations
+- **ErrorBoundary** - Error boundaries
+- **ErrorDialog** - Global error dialog
+- **ThemeToggle** - Theme switcher
 
 ## Security
 
@@ -189,6 +245,83 @@ k8sdownloader/
 - **Read-only access** — the app only reads files and downloads them; no write operations to the cluster
 - **No credential storage** — reads from the user's existing kubeconfig, does not cache or transmit credentials
 - **CSP headers** — Content Security Policy restricts script and style sources
+
+## Architecture Improvements
+
+This version includes significant architecture improvements:
+
+### 1. **Feature-based Organization**
+- Restructured codebase into vertical slices (features)
+- Each feature is self-contained with components, hooks, and types
+- Better separation of concerns and maintainability
+
+### 2. **Centralized State Management**
+- Replaced individual React hooks with Zustand stores
+- Single source of truth for all application state
+- No prop drilling, better performance
+
+### 3. **Service Layer Abstraction**
+- Created `KubernetesService` for all Kubernetes operations
+- Clean interface for API calls
+- Easier to mock and test
+
+### 4. **Shared Types Package**
+- Centralized all TypeScript types
+- Eliminated type duplication
+- Better type safety across the application
+
+### 5. **Structured Error Handling**
+- Added `AppError` class with error codes
+- Consistent error messages and handling
+- Better debugging capabilities
+
+### 6. **Performance Optimizations**
+- Added memoization to key components
+- Implemented debouncing for search inputs
+- Added code splitting for large dependencies
+- Created memoized `FileRow` component
+
+### 7. **Reusable UI Components**
+- Created comprehensive UI component library
+- Consistent styling and behavior
+- Better accessibility
+
+### 8. **Improved Build Configuration**
+- Added path aliases for easier imports
+- Configured source maps for better debugging
+- Added manual code splitting
+- Improved Vite configuration
+
+## Migration Guide
+
+For developers migrating from the original architecture:
+
+1. **Update imports** to use feature-based paths:
+   ```typescript
+   // Before
+   import { ContextSelector } from "../components/ContextSelector";
+   
+   // After  
+   import { ContextSelector } from "@features/contexts/components/ContextSelector";
+   ```
+
+2. **Replace hooks** with store-based approach:
+   ```typescript
+   // Before
+   const ctx = useKubeConfig();
+   
+   // After
+   const ctx = useContexts();
+   ```
+
+3. **Use service layer** instead of direct API calls:
+   ```typescript
+   // Before
+   const contexts = await fetchContexts();
+   
+   // After
+   const contexts = await KubernetesService.getContexts();
+   ```
 
 ## License
 

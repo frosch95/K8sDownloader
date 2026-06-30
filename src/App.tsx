@@ -1,32 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ContextSelector } from "./components/ContextSelector";
-import { NamespaceSelector } from "./components/NamespaceSelector";
-import { PodSelector } from "./components/PodSelector";
-import { FileExplorer } from "./components/FileExplorer";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { ErrorDialog } from "./components/ErrorDialog";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { useKubeConfig } from "./hooks/useKubeConfig";
-import { useNamespaces } from "./hooks/useNamespaces";
-import { usePods } from "./hooks/usePods";
-import { useFileSystem } from "./hooks/useFileSystem";
-import { useTheme } from "./hooks/useTheme";
-import type { PodInfo } from "./types";
+import { ContextSelector } from "./features/contexts/components/ContextSelector";
+import { NamespaceSelector } from "./features/namespaces/components/NamespaceSelector";
+import { PodSelector } from "./features/pods/components/PodSelector";
+import { FileExplorer } from "./features/filesystem/components/FileExplorer";
+import { ErrorBoundary } from "./features/ui/components/ErrorBoundary";
+import { ErrorDialog } from "./features/ui/components/ErrorDialog";
+import { ThemeToggle } from "./features/ui/components/ThemeToggle";
+import { useContexts } from "./features/contexts/hooks/useContexts";
+import { useNamespaces } from "./features/namespaces/hooks/useNamespaces";
+import { usePods } from "./features/pods/hooks/usePods";
+import { useFileSystem } from "./features/filesystem/hooks/useFileSystem";
+import { useTheme } from "./features/ui/hooks/useTheme";
+import { useKubeStore } from "./stores/kubeStore";
+import { AppError, ErrorCode } from "./shared/types/errors";
+import type { PodInfo } from "./shared/types/kubernetes";
 
-const SIDEBAR_MIN = 200;
-const SIDEBAR_MAX = 500;
-const SIDEBAR_DEFAULT = 320;
+import { UI } from "./shared/constants";
+
+const { SIDEBAR_MIN, SIDEBAR_MAX, SIDEBAR_DEFAULT } = UI;
 
 function App() {
-  const [globalError, setGlobalError] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const dragging = useRef(false);
 
   const theme = useTheme();
-  const ctx = useKubeConfig();
+  const ctx = useContexts();
   const ns = useNamespaces();
   const pods = usePods();
   const fs = useFileSystem();
+  const { globalError, clearGlobalError } = useKubeStore();
 
   // Extract stable callbacks
   const { load: nsLoad, setError: nsSetError } = ns;
@@ -83,11 +85,6 @@ function App() {
     [ctx.selected, ns.selected, podsSetSelected, fsReset, fsNavigateTo]
   );
 
-  useEffect(() => {
-    const err = ctx.error || ns.error || pods.error || fs.error;
-    if (err) setGlobalError(err);
-  }, [ctx.error, ns.error, pods.error, fs.error]);
-
   const handleNavigate = useCallback(
     (dirPath: string) => {
       if (ctx.selected && ns.selected && pods.selected) {
@@ -107,12 +104,12 @@ function App() {
   );
 
   const dismissError = useCallback(() => {
-    setGlobalError(null);
-    ctxSetError(null);
-    nsSetError(null);
-    podsSetError(null);
-    fsSetError(null);
-  }, [ctxSetError, nsSetError, podsSetError, fsSetError]);
+    clearGlobalError();
+    ctxSetError();
+    nsSetError();
+    podsSetError();
+    fsSetError();
+  }, [clearGlobalError, ctxSetError, nsSetError, podsSetError, fsSetError]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -199,13 +196,13 @@ function App() {
               containerName={pods.selected?.containers?.[0] ?? null}
               onNavigate={handleNavigate}
               onBack={handleBack}
-              onError={setGlobalError}
+              onError={(message) => useKubeStore.getState().setGlobalError(new AppError(ErrorCode.UNKNOWN_ERROR, message))}
             />
           </ErrorBoundary>
         </main>
       </div>
 
-      <ErrorDialog message={globalError} onClose={dismissError} />
+      <ErrorDialog message={globalError?.message || ''} onClose={dismissError} />
     </div>
   );
 }

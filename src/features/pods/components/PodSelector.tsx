@@ -1,6 +1,6 @@
-import { useState } from "react";
-import type { PodInfo } from "../types";
-import { filterPods } from "../utils/kubeconfig";
+import { useState, memo, useEffect } from "react";
+import type { PodInfo } from "../../../shared/types/kubernetes";
+import { filterPods } from "../../../utils/kubeconfig";
 
 interface PodSelectorProps {
   pods: PodInfo[];
@@ -10,7 +10,7 @@ interface PodSelectorProps {
   onSelect: (pod: PodInfo) => void;
 }
 
-export function PodSelector({
+export const PodSelector = memo(function PodSelector({
   pods,
   selected,
   loading,
@@ -18,7 +18,18 @@ export function PodSelector({
   onSelect,
 }: PodSelectorProps) {
   const [search, setSearch] = useState("");
-  const filtered = filterPods(pods, search);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Debounce the search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [search]);
+  
+  const filtered = filterPods(pods, debouncedSearch);
 
   return (
     <div className="space-y-3">
@@ -81,4 +92,4 @@ export function PodSelector({
       )}
     </div>
   );
-}
+});

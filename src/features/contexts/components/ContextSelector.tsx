@@ -1,14 +1,15 @@
-import type { ContextInfo } from "../types";
+import type { ContextInfo } from "../../../shared/types/kubernetes";
+import { memo } from "react";
 
 interface ContextSelectorProps {
   contexts: ContextInfo[];
-  selected: string;
+  selected: string | null;
   loading: boolean;
   onSelect: (name: string) => void;
   onRefresh: () => void;
 }
 
-export function ContextSelector({
+export const ContextSelector = memo(function ContextSelector({
   contexts,
   selected,
   loading,
@@ -37,7 +38,7 @@ export function ContextSelector({
         </div>
       ) : (
         <select
-          value={selected}
+          value={selected || ''}
           onChange={(e) => onSelect(e.target.value)}
           className="w-full bg-k8s-darker border border-k8s-border rounded-lg px-4 py-2.5 text-sm text-k8s-text
                      focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 focus:border-k8s-blue/50
@@ -57,4 +58,4 @@ export function ContextSelector({
       )}
     </div>
   );
-}
+});

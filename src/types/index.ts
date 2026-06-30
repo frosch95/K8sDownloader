@@ -1,26 +1,4 @@
-export interface ContextInfo {
-  name: string;
-  cluster: string;
-  user: string;
-}
-
-export interface NamespaceInfo {
-  name: string;
-}
-
-export interface PodInfo {
-  name: string;
-  namespace: string;
-  status: string;
-  containers: string[];
-}
-
-export interface FileEntry {
-  name: string;
-  path: string;
-  isDir: boolean;
-  size: number;
-  modified: string;
-}
-
-export type ConnectionStep = "context" | "namespace" | "pod" | "browse";
+// Re-export types from shared package for backward compatibility
+export * from '../shared/types/kubernetes';
+export * from '../shared/types/api';
+export * from '../shared/types/errors';
