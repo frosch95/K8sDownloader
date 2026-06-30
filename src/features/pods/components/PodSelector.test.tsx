@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PodSelector } from "./PodSelector";
 import type { PodInfo } from "../../../shared/types/kubernetes";
 
@@ -66,7 +66,7 @@ describe("PodSelector", () => {
     expect(screen.getByText("crashed-pod")).toBeInTheDocument();
   });
 
-  it("filters pods by search text", () => {
+  it("filters pods by search text", async () => {
     render(
       <PodSelector
         pods={samplePods}
@@ -79,11 +79,14 @@ describe("PodSelector", () => {
     fireEvent.change(screen.getByPlaceholderText("Filter pods…"), {
       target: { value: "nginx" },
     });
-    expect(screen.getByText("nginx-deployment-abc")).toBeInTheDocument();
-    expect(screen.queryByText("redis-master")).not.toBeInTheDocument();
+    // Wait for debounce to complete
+    await waitFor(() => {
+      expect(screen.getByText("nginx-deployment-abc")).toBeInTheDocument();
+      expect(screen.queryByText("redis-master")).not.toBeInTheDocument();
+    });
   });
 
-  it("shows 'No pods found' when filter yields no results", () => {
+  it("shows 'No pods found' when filter yields no results", async () => {
     render(
       <PodSelector
         pods={samplePods}
@@ -96,7 +99,10 @@ describe("PodSelector", () => {
     fireEvent.change(screen.getByPlaceholderText("Filter pods…"), {
       target: { value: "nonexistent" },
     });
-    expect(screen.getByText("No pods found")).toBeInTheDocument();
+    // Wait for debounce to complete
+    await waitFor(() => {
+      expect(screen.getByText("No pods found")).toBeInTheDocument();
+    });
   });
 
   it("shows 'Select a namespace first' when disabled", () => {
