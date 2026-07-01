@@ -20,3 +20,5 @@
 * [x] **Feature 10:** Toggle between dark mode and light mode.
 * [x] **Tests:** Add component tests (FileExplorer, ContextSelector, NamespaceSelector, PodSelector, ErrorDialog, ThemeToggle, ErrorBoundary) – 10 test files, 104 tests.
 * [x] **Improvement:** Wrap top-level components with ErrorBoundary to catch render errors gracefully.
+* [x] **Feature 11:** Add a darcula like theme
+* [x] **Feature 12:** Theme should be selectable via Drop Down

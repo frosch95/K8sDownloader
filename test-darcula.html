@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darcula Theme Test</title>
+    <style>
+        :root {
+            --k8s-bg: #f8fafc;
+            --k8s-bg-secondary: #ffffff;
+            --k8s-surface: #f1f5f9;
+            --k8s-border: #e2e8f0;
+            --k8s-text: #1e293b;
+            --k8s-muted: #64748b;
+        }
+
+        .dark {
+            --k8s-bg: #0f172a;
+            --k8s-bg-secondary: #1e293b;
+            --k8s-surface: #1a2332;
+            --k8s-border: #2d3a4a;
+            --k8s-text: #e2e8f0;
+            --k8s-muted: #94a3b8;
+        }
+
+        .darcula {
+            --k8s-bg: #2b2b2b;
+            --k8s-bg-secondary: #212121;
+            --k8s-surface: #323232;
+            --k8s-border: #424242;
+            --k8s-text: #bbbbbb;
+            --k8s-muted: #808080;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--k8s-bg);
+            color: var(--k8s-text);
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-box {
+            background-color: var(--k8s-surface);
+            border: 1px solid var(--k8s-border);
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .theme-buttons {
+            margin: 20px 0;
+        }
+
+        button {
+            background-color: var(--k8s-surface);
+            color: var(--k8s-text);
+            border: 1px solid var(--k8s-border);
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--k8s-border);
+        }
+
+        h1 {
+            color: var(--k8s-text);
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: var(--k8s-muted);
+            margin: 10px 0;
+        }
+        
+        a {
+            color: var(--text-k8s-link);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        a:hover {
+            color: var(--text-k8s-link-hover);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Darcula Theme Test</h1>
+    <p>Current theme: <span id="current-theme">light</span></p>
+    
+    <div class="theme-box">
+        <h2>Theme Preview</h2>
+        <p>This box shows the current theme colors.</p>
+        <p>Background: var(--k8s-surface)</p>
+        <p>Border: var(--k8s-border)</p>
+        <p>Text: var(--k8s-text)</p>
+        <p>Muted text: var(--k8s-muted)</p>
+        <p>Link: <a href="#">This is a link</a></p>
+        <p>Link hover: Hover over the link above to see the hover color</p>
+    </div>
+
+    <div class="theme-buttons">
+        <button onclick="setTheme('light')">Light Theme</button>
+        <button onclick="setTheme('dark')">Dark Theme</button>
+        <button onclick="setTheme('darcula')">Darcula Theme</button>
+    </div>
+
+    <script>
+        function setTheme(theme) {
+            document.documentElement.classList.remove('light', 'dark', 'darcula');
+            document.documentElement.classList.add(theme);
+            document.getElementById('current-theme').textContent = theme;
+        }
+    </script>
+</body>
+</html>

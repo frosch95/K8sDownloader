@@ -20,7 +20,7 @@ export function Badge({
   className = '',
 }: BadgeProps) {
   const variantStyles = {
-    primary: 'bg-k8s-blue/20 text-k8s-blue',
+    primary: 'bg-k8s-blue/20 text-k8s-link',
     success: 'bg-green-500/20 text-green-400',
     warning: 'bg-yellow-500/20 text-yellow-400',
     danger: 'bg-red-500/20 text-red-400',

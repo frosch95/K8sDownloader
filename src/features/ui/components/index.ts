@@ -10,3 +10,4 @@ export * from './ProgressBar';
 export * from './ErrorBoundary';
 export * from './ErrorDialog';
 export * from './ThemeToggle';
+export * from './ThemeSelector';

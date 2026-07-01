@@ -41,7 +41,7 @@ export const FileRow = memo(function FileRow({
           <span className="text-lg">{getFileIcon(entry.isDir)}</span>
           <span
             className={`truncate max-w-[250px] sm:max-w-[400px] ${
-              entry.isDir ? "text-k8s-blue font-medium" : "text-k8s-text"
+              entry.isDir ? "text-k8s-link font-medium" : "text-k8s-text"
             }`}
           >
             {entry.name}

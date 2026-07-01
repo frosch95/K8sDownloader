@@ -105,7 +105,7 @@ export const FileExplorer = memo(function FileExplorer({
 
         <button
           onClick={() => onNavigate("/")}
-          className="shrink-0 text-sm text-k8s-blue hover:text-k8s-blue/80 transition-colors"
+          className="shrink-0 text-sm text-k8s-link hover:text-k8s-link/80 transition-colors"
         >
           /
         </button>
@@ -120,7 +120,7 @@ export const FileExplorer = memo(function FileExplorer({
             ) : (
               <button
                 onClick={() => onNavigate(crumb.path)}
-                className="text-k8s-blue hover:text-k8s-blue/80 transition-colors truncate max-w-[200px]"
+                className="text-k8s-link hover:text-k8s-link/80 transition-colors truncate max-w-[200px]"
               >
                 {crumb.label}
               </button>

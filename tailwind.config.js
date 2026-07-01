@@ -13,6 +13,8 @@ export default {
           border: "var(--k8s-border)",
           text: "var(--k8s-text)",
           muted: "var(--k8s-muted)",
+          link: "var(--text-k8s-link)",
+          linkHover: "var(--text-k8s-link-hover)",
         },
       },
       fontFamily: {

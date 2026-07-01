@@ -25,7 +25,7 @@ export const ContextSelector = memo(function ContextSelector({
         <button
           onClick={onRefresh}
           disabled={loading}
-          className="text-xs text-k8s-blue hover:text-k8s-blue/80 disabled:opacity-50 transition-colors"
+          className="text-xs text-k8s-link hover:text-k8s-link/80 disabled:opacity-50 transition-colors"
         >
           {loading ? "Loading…" : "🔄 Refresh"}
         </button>

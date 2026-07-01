@@ -3,8 +3,15 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeToggle } from "./ThemeToggle";
 
 describe("ThemeToggle", () => {
-  it("shows switch to light mode when in dark mode", () => {
+  it("shows switch to darcula mode when in dark mode", () => {
     render(<ThemeToggle theme="dark" onToggle={vi.fn()} />);
+    expect(
+      screen.getByLabelText("Switch to darcula mode")
+    ).toBeInTheDocument();
+  });
+
+  it("shows switch to light mode when in darcula mode", () => {
+    render(<ThemeToggle theme="darcula" onToggle={vi.fn()} />);
     expect(
       screen.getByLabelText("Switch to light mode")
     ).toBeInTheDocument();
@@ -26,6 +33,11 @@ describe("ThemeToggle", () => {
 
   it("has correct title attribute in dark mode", () => {
     render(<ThemeToggle theme="dark" onToggle={vi.fn()} />);
+    expect(screen.getByTitle("Switch to darcula mode")).toBeInTheDocument();
+  });
+
+  it("has correct title attribute in darcula mode", () => {
+    render(<ThemeToggle theme="darcula" onToggle={vi.fn()} />);
     expect(screen.getByTitle("Switch to light mode")).toBeInTheDocument();
   });
 

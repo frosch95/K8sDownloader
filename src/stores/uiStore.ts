@@ -7,9 +7,9 @@
 import { create } from 'zustand';
 
 interface UIState {
-  theme: 'light' | 'dark' | 'system';
+  theme: 'light' | 'dark' | 'darcula' | 'system';
   toggleTheme: () => void;
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setTheme: (theme: 'light' | 'dark' | 'darcula' | 'system') => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -18,10 +18,13 @@ export const useUIStore = create<UIState>((set) => ({
   
   toggleTheme: () => {
     set((state) => {
-      const newTheme = state.theme === 'light' ? 'dark' : 'light';
+      const themes: ('light' | 'dark' | 'darcula')[] = ['light', 'dark', 'darcula'];
+      const currentIndex = themes.indexOf(state.theme as 'light' | 'dark' | 'darcula');
+      const nextIndex = (currentIndex + 1) % themes.length;
+      const newTheme = themes[nextIndex];
       if (typeof window !== 'undefined') {
         localStorage.setItem('theme', newTheme);
-        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.remove('light', 'dark', 'darcula');
         document.documentElement.classList.add(newTheme);
       }
       return { theme: newTheme };
@@ -32,7 +35,7 @@ export const useUIStore = create<UIState>((set) => ({
     set({ theme });
     if (typeof window !== 'undefined') {
       localStorage.setItem('theme', theme);
-      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.remove('light', 'dark', 'darcula');
       if (theme !== 'system') {
         document.documentElement.classList.add(theme);
       }
@@ -46,7 +49,7 @@ export const initializeUIStore = () => {
   
   if (typeof window !== 'undefined') {
     // Apply the stored theme
-    if (theme === 'light' || theme === 'dark') {
+    if (theme === 'light' || theme === 'dark' || theme === 'darcula') {
       document.documentElement.classList.add(theme);
     }
     

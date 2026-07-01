@@ -68,7 +68,7 @@ export const PodSelector = memo(function PodSelector({
                   className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between gap-3
                     ${
                       selected?.name === pod.name
-                        ? "bg-k8s-blue/10 text-k8s-blue border-l-2 border-l-k8s-blue"
+                        ? "bg-k8s-blue/10 text-k8s-link border-l-2 border-l-k8s-blue"
                         : "hover:bg-k8s-surface/50 text-k8s-text border-l-2 border-l-transparent"
                     }`}
                 >

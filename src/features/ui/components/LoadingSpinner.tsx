@@ -12,7 +12,7 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({
   size = 'md',
-  color = 'text-k8s-blue',
+  color = 'text-k8s-link',
   className = '',
 }: LoadingSpinnerProps) {
   const sizeClasses = {

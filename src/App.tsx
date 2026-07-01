@@ -5,7 +5,7 @@ import { PodSelector } from "./features/pods/components/PodSelector";
 import { FileExplorer } from "./features/filesystem/components/FileExplorer";
 import { ErrorBoundary } from "./features/ui/components/ErrorBoundary";
 import { ErrorDialog } from "./features/ui/components/ErrorDialog";
-import { ThemeToggle } from "./features/ui/components/ThemeToggle";
+import { ThemeSelector } from "./features/ui/components/ThemeSelector";
 import { useContexts } from "./features/contexts/hooks/useContexts";
 import { useNamespaces } from "./features/namespaces/hooks/useNamespaces";
 import { usePods } from "./features/pods/hooks/usePods";
@@ -127,7 +127,7 @@ function App() {
           <span className="text-xs text-k8s-muted hidden sm:inline">
             Kubernetes File Browser
           </span>
-          <ThemeToggle theme={theme.theme} onToggle={theme.toggle} />
+          <ThemeSelector theme={theme.theme} onChange={theme.setTheme} />
         </div>
       </header>
 
