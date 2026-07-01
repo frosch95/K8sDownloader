@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+* [x] **BugFix:** Update GitHub Actions to use latest versions to avoid Node.js 20 deprecation warnings
 * [x] **Improvements:** replace ☸️ with icon.svg
 * [x] **Improvement:** Add MIT license to the project
 * [x] **Improvement:** Use the icon.svg as icon in the application and as app icon in the OS
