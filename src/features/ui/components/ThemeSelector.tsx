@@ -5,33 +5,30 @@
  * Replaces the ThemeToggle button for direct theme selection.
  */
 
-import { Select } from './Select';
+import { CustomSelect } from './CustomSelect';
+
+type ThemeType = "dark" | "light" | "darcula" | "system";
 
 interface ThemeSelectorProps {
-  theme: "dark" | "light" | "darcula" | "system";
-  onChange: (theme: "dark" | "light" | "darcula" | "system") => void;
+  theme: ThemeType;
+  onChange: (value: ThemeType) => void;
 }
 
 export function ThemeSelector({ theme, onChange }: ThemeSelectorProps) {
-  const themeOptions = [
+  const themeOptions: { value: ThemeType; label: string }[] = [
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
     { value: "darcula", label: "Darcula" },
     { value: "system", label: "System" },
   ];
 
-  const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedTheme = e.target.value as "dark" | "light" | "darcula" | "system";
-    onChange(selectedTheme);
-  };
-
   return (
     <div className="w-32">
-      <Select
+      <CustomSelect
         size="sm"
         value={theme}
         options={themeOptions}
-        onChange={handleThemeChange}
+        onChange={onChange}
         className="w-full"
       />
     </div>

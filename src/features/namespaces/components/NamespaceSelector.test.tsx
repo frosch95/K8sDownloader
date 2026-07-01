@@ -46,8 +46,11 @@ describe("NamespaceSelector", () => {
         onSelect={vi.fn()}
       />
     );
-    const options = screen.getAllByRole("option");
-    expect(options).toHaveLength(4); // 3 namespaces + 1 placeholder
+    
+    // Open dropdown to check options
+    const button = screen.getByRole("button", { name: "Select a namespace…" });
+    fireEvent.click(button);
+    
     expect(screen.getByText("default")).toBeInTheDocument();
     expect(screen.getByText("kube-system")).toBeInTheDocument();
     expect(screen.getByText("production")).toBeInTheDocument();
@@ -64,9 +67,13 @@ describe("NamespaceSelector", () => {
         onSelect={onSelect}
       />
     );
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "default" },
-    });
+    
+    // Open dropdown
+    const button = screen.getByRole("button", { name: "Select a namespace…" });
+    fireEvent.click(button);
+    
+    // Click on an option
+    fireEvent.click(screen.getByText("default"));
     expect(onSelect).toHaveBeenCalledWith("default");
   });
 
@@ -80,7 +87,8 @@ describe("NamespaceSelector", () => {
         onSelect={vi.fn()}
       />
     );
-    expect(screen.getByRole("combobox")).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Select a namespace…" });
+    expect(button).toBeDisabled();
   });
 
   it("disables the select when there are no namespaces", () => {
@@ -93,6 +101,7 @@ describe("NamespaceSelector", () => {
         onSelect={vi.fn()}
       />
     );
-    expect(screen.getByRole("combobox")).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Select a namespace…" });
+    expect(button).toBeDisabled();
   });
 });

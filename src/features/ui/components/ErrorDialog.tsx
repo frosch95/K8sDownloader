@@ -28,7 +28,7 @@ export function ErrorDialog({ message, onClose }: ErrorDialogProps) {
           <span className="text-2xl">⚠️</span>
           <h2 className="text-lg font-semibold text-red-400">Error</h2>
         </div>
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 max-h-64 overflow-y-auto">
           <p className="text-k8s-text text-sm leading-relaxed whitespace-pre-wrap">
             {message}
           </p>

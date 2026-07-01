@@ -22,7 +22,6 @@
 * Use best practices for electron apps
 * Use linting for the project
 * Do documentation of architecture and features in README.md and describe how to build, run and release the app on windows, linux and macos. Update the README.md if anything changes depending to the achitecture or features to have up-to-date documentation.
-* Add the finished tasks at the end of the Done list
 
 ## Definition of Done
 * Project must build without errors

@@ -83,4 +83,17 @@ describe("ErrorDialog", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("has scrollable content area for long messages", () => {
+    const longMessage = "Error: ".repeat(50); // Very long message
+    render(
+      <ErrorDialog message={longMessage} onClose={vi.fn()} />
+    );
+    
+    // Use a regex to find the content area that contains the error message
+    const contentArea = screen.getByRole("alertdialog").querySelector(".max-h-64.overflow-y-auto");
+    expect(contentArea).toBeInTheDocument();
+    expect(contentArea).toHaveClass("max-h-64");
+    expect(contentArea).toHaveClass("overflow-y-auto");
+  });
 });

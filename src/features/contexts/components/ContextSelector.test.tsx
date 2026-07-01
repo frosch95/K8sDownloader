@@ -46,11 +46,12 @@ describe("ContextSelector", () => {
         onRefresh={vi.fn()}
       />
     );
-    const select = screen.getByRole("combobox");
-    expect(select).toBeInTheDocument();
-    // Each context + the placeholder option
-    const options = screen.getAllByRole("option");
-    expect(options).toHaveLength(4); // 3 contexts + 1 placeholder
+    const button = screen.getByRole("button", { name: "Select a context…" });
+    expect(button).toBeInTheDocument();
+    
+    // Open dropdown to check options
+    fireEvent.click(button);
+    
     expect(screen.getByText("prod-cluster (prod-eu)")).toBeInTheDocument();
     expect(screen.getByText("dev-cluster (dev-us)")).toBeInTheDocument();
     expect(screen.getByText("staging (staging-eu)")).toBeInTheDocument();
@@ -67,9 +68,13 @@ describe("ContextSelector", () => {
         onRefresh={vi.fn()}
       />
     );
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "prod-cluster" },
-    });
+    
+    // Open dropdown
+    const button = screen.getByRole("button", { name: "Select a context…" });
+    fireEvent.click(button);
+    
+    // Click on an option
+    fireEvent.click(screen.getByText("prod-cluster (prod-eu)"));
     expect(onSelect).toHaveBeenCalledWith("prod-cluster");
   });
 
