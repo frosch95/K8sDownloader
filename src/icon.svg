@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Breite Hintergrund-Datei -->
+  <path d="M96 96C96 78.3 110.3 64 128 64H320L416 160V416C416 433.7 401.7 448 384 448H128C110.3 448 96 433.7 96 416V96Z" fill="#E2E8F0" stroke="#475569" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M320 64V160H416" fill="none" stroke="#475569" stroke-width="16" stroke-linejoin="round"/>
+
+  <!-- Der Pod (Hexagon) -->
+  <polygon points="256,170 334,215 334,305 256,350 178,305 178,215" fill="#3B82F6" opacity="0.85"/>
+  <polygon points="256,170 334,215 334,305 256,350 178,305 178,215" fill="none" stroke="#1D4ED8" stroke-width="12" stroke-linejoin="round"/>
+
+  <!-- Breiterer Download-Pfeil (stroke-width="24") -->
+  <path d="M256 120V270M206 220L256 270L306 220" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Datenfragmente / Linien am Fuß der Datei -->
+  <line x1="180" y1="390" x2="332" y2="390" stroke="#475569" stroke-width="16" stroke-linecap="round" />
+  <line x1="210" y1="415" x2="302" y2="415" stroke="#475569" stroke-width="16" stroke-linecap="round" />
+</svg>

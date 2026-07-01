@@ -118,14 +118,14 @@ function App() {
       {/* Header */}
       <header className="shrink-0 flex items-center justify-between px-6 py-3 bg-k8s-dark border-b border-k8s-border">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">☸️</span>
+          <img src="/icon.svg" alt="Kubernetes" className="w-12 h-12" />
           <h1 className="text-lg font-bold text-k8s-text tracking-tight">
-            K8sDownloader
+            k8s Downloader
           </h1>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-k8s-muted hidden sm:inline">
-            Kubernetes File Browser
+            Theme:
           </span>
           <ThemeSelector theme={theme.theme} onChange={theme.setTheme} />
         </div>
@@ -170,7 +170,7 @@ function App() {
 
           <div className="shrink-0 px-4 py-3 border-t border-k8s-border">
             <p className="text-[11px] text-k8s-muted/60 text-center">
-              Powered by Electron + React + Kubernetes API
+              MIT License | &copy; 2026
             </p>
           </div>
 

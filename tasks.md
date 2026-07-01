@@ -5,7 +5,10 @@
 ## In Progress
 
 ## Done
-* [x] **BugFix** The error dialogs content section must be scrollable as the text might be too long and the buttons are not visible any more if the screen is too small
+* [x] **Improvements:** replace ☸️ with icon.svg
+* [x] **Improvement:** Add MIT license to the project
+* [x] **Improvement:** Use the icon.svg as icon in the application and as app icon in the OS
+* [x] **BugFix:** The error dialogs content section must be scrollable as the text might be too long and the buttons are not visible any more if the screen is too small
 * [x] **Bugfix:** The Drop Down looks a bit odd as the left side of thd Drop Down List has a thicker border than the right side
 * [x] **Feature 12:** Theme should be selectable via Drop Down
 * [x] **Feature 11:** Add a darcula like theme

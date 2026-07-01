@@ -6,6 +6,7 @@ import renderer from 'vite-plugin-electron-renderer'
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createHtmlPlugin } from 'vite-plugin-html';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // package.json sicher einlesen und parsen
 const pkg = JSON.parse(
@@ -49,6 +50,14 @@ export default defineConfig({
       },
     ]),
     renderer(),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'public/*',
+          dest: 'dist'
+        }
+      ]
+    }),
     // Custom plugin to handle CSP for Electron
     {
       name: 'electron-csp-fix',

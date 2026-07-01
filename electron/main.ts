@@ -37,6 +37,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     title: "K8sDownloader",
     backgroundColor: "#0f172a",
+    icon: path.join(__dirname, "..", "public", "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
