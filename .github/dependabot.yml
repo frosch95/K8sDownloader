@@ -4,3 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+    groups:
+      # Gruppe 1: Alle kleineren Updates (Sicher und schnell zu mergen)
+      minor-and-patch-updates:
+        update-types:
+          - "minor"
+          - "patch"
