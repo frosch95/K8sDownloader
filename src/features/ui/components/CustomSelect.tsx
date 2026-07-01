@@ -5,7 +5,7 @@
  * rendering issues like uneven borders in the dropdown list.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 
 interface CustomSelectProps<T extends string> {
   value: T;
@@ -25,13 +25,12 @@ export function CustomSelect<T extends string>({
   disabled = false,
 }: CustomSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<{ value: T; label: string } | null>(null);
 
-  useEffect(() => {
-    // Initialize selected option on first render or when options/value change
-    const initialOption = options.find(opt => opt.value === value) || options[0] || null;
-    setSelectedOption(initialOption);
-  }, [value, options]);
+  // Derive selected option from props (controlled component pattern)
+  const selectedOption = useMemo(
+    () => options.find(opt => opt.value === value) || options[0] || null,
+    [value, options]
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
@@ -41,7 +40,6 @@ export function CustomSelect<T extends string>({
   };
 
   const handleSelect = (option: { value: T; label: string }) => {
-    setSelectedOption(option);
     onChange(option.value);
     setIsOpen(false);
   };

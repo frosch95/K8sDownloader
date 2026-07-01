@@ -252,7 +252,7 @@ export const useKubeStore = create<KubeState>((set, get) => ({
       );
       
       // Update navigation history
-      const { navigationHistory, navigationFuture, currentPath } = get();
+      const { navigationHistory, currentPath } = get();
       
       set({
         files,

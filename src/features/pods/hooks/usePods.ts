@@ -7,7 +7,6 @@
  */
 
 import { useKubeStore } from '../../../stores/kubeStore';
-import type { PodInfo } from '../../../shared/types/kubernetes';
 
 export function usePods() {
   const {

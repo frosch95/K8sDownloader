@@ -1,6 +1,6 @@
 import { useCallback, useState, memo } from "react";
 import { saveAndDownload } from "../../../utils/api";
-import { formatFileSize, getFileIcon, getParentPath } from "../../../utils/kubeconfig";
+import { getParentPath } from "../../../utils/kubeconfig";
 import type { FileEntry } from "../../../shared/types/kubernetes";
 import { MemoizedFileRow } from "./FileRow";
 

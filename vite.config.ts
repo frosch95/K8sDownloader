@@ -6,7 +6,6 @@ import path from "path";
 import renderer from 'vite-plugin-electron-renderer'
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { createHtmlPlugin } from 'vite-plugin-html';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // package.json sicher einlesen und parsen

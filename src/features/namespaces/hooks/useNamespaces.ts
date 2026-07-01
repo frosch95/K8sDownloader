@@ -7,7 +7,6 @@
  */
 
 import { useKubeStore } from '../../../stores/kubeStore';
-import type { NamespaceInfo } from '../../../shared/types/kubernetes';
 
 export function useNamespaces() {
   const {

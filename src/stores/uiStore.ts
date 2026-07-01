@@ -45,7 +45,7 @@ export const useUIStore = create<UIState>((set) => ({
 
 // Initialize theme on store creation
 export const initializeUIStore = () => {
-  const { theme, setTheme } = useUIStore.getState();
+  const { theme } = useUIStore.getState();
   
   if (typeof window !== 'undefined') {
     // Apply the stored theme

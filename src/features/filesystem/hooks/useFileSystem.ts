@@ -7,7 +7,6 @@
  */
 
 import { useKubeStore } from '../../../stores/kubeStore';
-import type { FileEntry } from '../../../shared/types/kubernetes';
 
 export function useFileSystem() {
   const {

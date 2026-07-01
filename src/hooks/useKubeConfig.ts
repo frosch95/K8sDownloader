@@ -22,9 +22,22 @@ export function useKubeConfig() {
     }
   }, []);
 
+  // Load data on mount – inline to avoid set-state-in-effect warning
   useEffect(() => {
-    load();
-  }, [load]);
+    const doLoad = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fetchContexts();
+        setContexts(result);
+      } catch (err) {
+        setError(extractErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    doLoad();
+  }, []);
 
   return useMemo(
     () => ({ contexts, selected, setSelected, loading, error, setError, reload: load }),

@@ -1,5 +1,5 @@
 import type { ContextInfo } from "../../../shared/types/kubernetes";
-import { memo, useState } from "react";
+import { memo } from "react";
 import { CustomSelect } from "../../ui/components/CustomSelect";
 
 interface ContextSelectorProps {
@@ -17,7 +17,6 @@ export const ContextSelector = memo(function ContextSelector({
   onSelect,
   onRefresh,
 }: ContextSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
   
   const contextOptions = [
     { value: "", label: "Select a context…", disabled: true },
