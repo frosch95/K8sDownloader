@@ -74,12 +74,12 @@ interface KubeState {
 export const useKubeStore = create<KubeState>((set, get) => ({
   // Initial state
   contexts: [],
-  selectedContext: typeof window !== 'undefined' && localStorage.getItem('selectedContext') || null,
+  selectedContext: typeof window !== 'undefined' ? localStorage.getItem('selectedContext') : null,
   contextsLoading: false,
   contextsError: null,
   
   namespaces: [],
-  selectedNamespace: typeof window !== 'undefined' && localStorage.getItem('selectedNamespace') || null,
+  selectedNamespace: typeof window !== 'undefined' ? localStorage.getItem('selectedNamespace') : null,
   namespacesLoading: false,
   namespacesError: null,
   
@@ -102,7 +102,7 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     set({ contextsLoading: true, contextsError: null });
     try {
       const contexts = await KubernetesService.getContexts();
-      const persistedContext = typeof window !== 'undefined' && localStorage.getItem('selectedContext');
+      const persistedContext = typeof window !== 'undefined' ? localStorage.getItem('selectedContext') : null;
       const contextExists = contexts.some(ctx => ctx.name === persistedContext);
       
       set({ 
@@ -165,7 +165,7 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     set({ namespacesLoading: true, namespacesError: null });
     try {
       const namespaces = await KubernetesService.getNamespaces(contextName);
-      const persistedNamespace = typeof window !== 'undefined' && localStorage.getItem('selectedNamespace');
+      const persistedNamespace = typeof window !== 'undefined' ? localStorage.getItem('selectedNamespace') : null;
       const namespaceExists = namespaces.some(ns => ns.name === persistedNamespace);
       
       set({ 
