@@ -21,7 +21,7 @@ export function useNamespaces() {
 
   return {
     namespaces,
-    selected: selectedNamespace,
+    selected: selectedNamespace === "" ? null : selectedNamespace,
     loading: namespacesLoading,
     error: namespacesError,
     load: loadNamespaces,

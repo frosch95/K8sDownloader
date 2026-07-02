@@ -4,7 +4,11 @@
 
 ## In Progress
 
+
 ## Done
+* [x] **Feature:** remember the last selections in cluster and namespace and make it persistent over restarts
+* [x] **Feature:** Add a 'Select Cluster' and 'Select Namespace' item in the list and this should be selected first, to avoid connecting to a non existing cluster or namespace
+* [x] **Improvement:** the height of the pod list should use the complete space to support long list of pods
 * [x] **Improvement:** Write the log output on every start into an empty file output.log.
 * [x] **BugFix:** Update GitHub Actions to use latest versions to avoid Node.js 20 deprecation warnings
 * [x] **Improvements:** replace ☸️ with icon.svg

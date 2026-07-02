@@ -18,7 +18,7 @@ export const NamespaceSelector = memo(function NamespaceSelector({
   onSelect,
 }: NamespaceSelectorProps) {
   const namespaceOptions = [
-    { value: "", label: "Select a namespace…", disabled: true },
+    { value: "", label: "Select a namespace…", disabled: false },
     ...namespaces.map((ns) => ({
       value: ns.name,
       label: ns.name,

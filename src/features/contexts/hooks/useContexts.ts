@@ -21,7 +21,7 @@ export function useContexts() {
 
   return {
     contexts,
-    selected: selectedContext,
+    selected: selectedContext === "" ? null : selectedContext,
     loading: contextsLoading,
     error: contextsError,
     reload: loadContexts,

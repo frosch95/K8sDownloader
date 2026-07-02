@@ -19,7 +19,7 @@ export const ContextSelector = memo(function ContextSelector({
 }: ContextSelectorProps) {
   
   const contextOptions = [
-    { value: "", label: "Select a context…", disabled: true },
+    { value: "", label: "Select a context…", disabled: false },
     ...contexts.map((ctx) => ({
       value: ctx.name,
       label: `${ctx.name} (${ctx.cluster})`,

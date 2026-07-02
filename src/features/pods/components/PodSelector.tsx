@@ -8,6 +8,7 @@ interface PodSelectorProps {
   loading: boolean;
   disabled: boolean;
   onSelect: (pod: PodInfo) => void;
+  className?: string;
 }
 
 export const PodSelector = memo(function PodSelector({
@@ -16,6 +17,7 @@ export const PodSelector = memo(function PodSelector({
   loading,
   disabled,
   onSelect,
+  className = "",
 }: PodSelectorProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -32,7 +34,7 @@ export const PodSelector = memo(function PodSelector({
   const filtered = filterPods(pods, debouncedSearch);
 
   return (
-    <div className="space-y-3">
+    <div className={`space-y-3 ${className}`}>
       <label className="text-sm font-medium text-k8s-muted uppercase tracking-wider">
         Pod
       </label>
@@ -55,7 +57,7 @@ export const PodSelector = memo(function PodSelector({
                        disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           />
 
-          <div className="max-h-48 overflow-y-auto border border-k8s-border rounded-lg divide-y divide-k8s-border/50">
+          <div className="overflow-y-auto border border-k8s-border rounded-lg divide-y divide-k8s-border/50" style={{ maxHeight: 'calc(100vh - 400px)', minHeight: '150px' }}>
             {filtered.length === 0 ? (
               <p className="text-sm text-k8s-muted px-4 py-3 text-center">
                 {disabled ? "Select a namespace first" : "No pods found"}

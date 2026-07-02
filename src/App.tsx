@@ -139,7 +139,7 @@ function App() {
           className="shrink-0 border-r border-k8s-border bg-k8s-dark flex flex-col relative"
           style={{ width: sidebarWidth }}
         >
-          <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          <div className="p-4 space-y-5 flex-1 min-h-0">
             <ErrorBoundary>
               <ContextSelector
                 contexts={ctx.contexts}
@@ -190,7 +190,7 @@ function App() {
               files={fs.files}
               currentPath={fs.currentPath}
               loading={fs.loading}
-              disabled={!pods.selected}
+              disabled={!pods.selected || !ctx.selected || !ns.selected}
               contextName={ctx.selected}
               namespace={ns.selected}
               podName={pods.selected?.name ?? ""}

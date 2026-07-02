@@ -74,12 +74,12 @@ interface KubeState {
 export const useKubeStore = create<KubeState>((set, get) => ({
   // Initial state
   contexts: [],
-  selectedContext: null,
+  selectedContext: typeof window !== 'undefined' && localStorage.getItem('selectedContext') || null,
   contextsLoading: false,
   contextsError: null,
   
   namespaces: [],
-  selectedNamespace: null,
+  selectedNamespace: typeof window !== 'undefined' && localStorage.getItem('selectedNamespace') || null,
   namespacesLoading: false,
   namespacesError: null,
   
@@ -102,10 +102,18 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     set({ contextsLoading: true, contextsError: null });
     try {
       const contexts = await KubernetesService.getContexts();
+      const persistedContext = typeof window !== 'undefined' && localStorage.getItem('selectedContext');
+      const contextExists = contexts.some(ctx => ctx.name === persistedContext);
+      
       set({ 
         contexts,
-        selectedContext: contexts.length > 0 ? contexts[0].name : null
+        selectedContext: contextExists ? persistedContext : null
       });
+      
+      // If we restored a context, try to restore its namespace too
+      if (contextExists && persistedContext) {
+        get().loadNamespaces(persistedContext);
+      }
     } catch (error) {
       const appError = AppError.fromError(error);
       set({ 
@@ -130,7 +138,16 @@ export const useKubeStore = create<KubeState>((set, get) => ({
       navigationFuture: []
     });
     
-    // Auto-load namespaces when context is selected
+    // Persist context selection
+    if (typeof window !== 'undefined') {
+      if (contextName) {
+        localStorage.setItem('selectedContext', contextName);
+      } else {
+        localStorage.removeItem('selectedContext');
+      }
+    }
+    
+    // Auto-load namespaces when context is selected (but not empty string)
     if (contextName) {
       get().loadNamespaces(contextName);
     }
@@ -148,10 +165,18 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     set({ namespacesLoading: true, namespacesError: null });
     try {
       const namespaces = await KubernetesService.getNamespaces(contextName);
+      const persistedNamespace = typeof window !== 'undefined' && localStorage.getItem('selectedNamespace');
+      const namespaceExists = namespaces.some(ns => ns.name === persistedNamespace);
+      
       set({ 
         namespaces,
-        selectedNamespace: namespaces.length > 0 ? namespaces[0].name : null
+        selectedNamespace: namespaceExists ? persistedNamespace : null
       });
+      
+      // If we restored a namespace, try to load its pods too
+      if (namespaceExists && persistedNamespace) {
+        get().loadPods(contextName, persistedNamespace);
+      }
     } catch (error) {
       const appError = AppError.fromError(error);
       set({ 
@@ -177,7 +202,16 @@ export const useKubeStore = create<KubeState>((set, get) => ({
       navigationFuture: []
     });
     
-    // Auto-load pods when namespace is selected
+    // Persist namespace selection
+    if (typeof window !== 'undefined') {
+      if (namespace) {
+        localStorage.setItem('selectedNamespace', namespace);
+      } else {
+        localStorage.removeItem('selectedNamespace');
+      }
+    }
+    
+    // Auto-load pods when namespace is selected (but not empty string)
     if (selectedContext && namespace) {
       get().loadPods(selectedContext, namespace);
     }
