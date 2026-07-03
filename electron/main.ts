@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
+import { fileURLToPath } from "url";
 import {
   getContexts,
   getNamespaces,
@@ -8,6 +9,10 @@ import {
   downloadFile,
 } from "./kubernetes";
 import { initLogger, patchConsole, closeLogger } from "./logger";
+
+// ESM polyfill: __dirname is not available in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
