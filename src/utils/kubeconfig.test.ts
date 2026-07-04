@@ -10,6 +10,8 @@ import {
   getParentPath,
   parseLsOutput,
   parseDirOutput,
+  sanitizeContainerPath,
+  validateKubernetesIdentifier,
 } from "../utils/kubeconfig";
 import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../types";
 
@@ -231,6 +233,38 @@ describe("parseLsOutput", () => {
 });
 
 // ── parseDirOutput ─────────────────────────────────────────────────────────
+
+describe("validateKubernetesIdentifier", () => {
+  it("accepts valid context names", () => {
+    expect(validateKubernetesIdentifier("prod-cluster", "Context name", { allowUppercase: true })).toBe("prod-cluster");
+  });
+
+  it("rejects unsupported characters", () => {
+    expect(() => validateKubernetesIdentifier("bad/name", "Context name", { allowUppercase: true })).toThrow("unsupported characters");
+  });
+
+  it("rejects empty values", () => {
+    expect(() => validateKubernetesIdentifier("   ", "Namespace")).toThrow("required");
+  });
+});
+
+describe("sanitizeContainerPath", () => {
+  it("accepts absolute Unix paths", () => {
+    expect(sanitizeContainerPath("/var/log/nginx.log")).toBe("/var/log/nginx.log");
+  });
+
+  it("accepts absolute Windows paths", () => {
+    expect(sanitizeContainerPath("C:/temp/file.txt")).toBe("C:/temp/file.txt");
+  });
+
+  it("rejects traversal segments", () => {
+    expect(() => sanitizeContainerPath("/var/log/../etc/passwd")).toThrow("traversal");
+  });
+
+  it("rejects relative paths", () => {
+    expect(() => sanitizeContainerPath("var/log")).toThrow("absolute");
+  });
+});
 
 describe("parseDirOutput", () => {
   const sample = [

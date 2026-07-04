@@ -13,5 +13,6 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true
   },
-  "include": ["vite.config.ts", "electron"]
+  "include": ["vite.config.ts", "electron/**/*.ts", "src/utils/**/*.ts", "src/shared/**/*.ts", "src/services/**/*.ts", "src/types/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"]
 }

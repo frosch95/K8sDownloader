@@ -9,6 +9,8 @@ export enum ErrorCode {
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
   PERMISSION_DENIED = 'PERMISSION_DENIED',
   NETWORK_ERROR = 'NETWORK_ERROR',
+  INVALID_INPUT = 'INVALID_INPUT',
+  INVALID_PATH = 'INVALID_PATH',
   TIMEOUT = 'TIMEOUT',
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
@@ -35,6 +37,14 @@ export class AppError extends Error {
         return new AppError(ErrorCode.KUBECTL_NOT_INSTALLED, message);
       }
       return new AppError(ErrorCode.KUBECTL_EXEC_FAILED, message);
+    }
+
+    if (message.toLowerCase().includes('invalid') || message.toLowerCase().includes('unsupported characters') || message.toLowerCase().includes('traversal')) {
+      return new AppError(ErrorCode.INVALID_INPUT, message);
+    }
+
+    if (message.toLowerCase().includes('path')) {
+      return new AppError(ErrorCode.INVALID_PATH, message);
     }
 
     return new AppError(ErrorCode.UNKNOWN_ERROR, message);

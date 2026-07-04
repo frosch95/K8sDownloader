@@ -87,6 +87,12 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
 - **kubectl** — installed and on PATH
 - **A valid kubeconfig** — default `~/.kube/config` or set `KUBECONFIG` env var
 
+## Security Hardening
+
+The application validates user-controlled Kubernetes identifiers and container paths before any kubectl command is executed. This blocks traversal-style paths such as `/var/log/../etc/passwd` and rejects malformed context, namespace, pod, or container names.
+
+The Electron main process keeps sandboxing enabled for the browser window, and renderer code never communicates with kubectl directly. In addition, the renderer uses a safe fallback bridge for Electron API access so the app does not crash when the preload API is unavailable outside a native Electron runtime.
+
 ## Quick Start
 
 ```bash

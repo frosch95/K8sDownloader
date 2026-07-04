@@ -176,6 +176,18 @@ sequenceDiagram
     end
 ```
 
+## Security Boundaries
+
+The Electron main process is the security boundary for all Kubernetes operations. Before any `kubectl exec` call is issued, the application validates the selected context, namespace, pod name, container name, and container path. Traversal-style paths and malformed identifiers are rejected before they reach the command layer.
+
+Renderer code never executes kubectl directly; it only communicates with the preload bridge and the main process. The Electron window also runs with sandboxing enabled to reduce the impact of renderer-level compromise.
+
+### Recent Implementation Updates
+
+- The main Electron window now uses sandboxing enabled for stronger isolation.
+- Renderer-side access to the Electron bridge is routed through a shared interface with a safe fallback, preventing startup crashes when the bridge is unavailable in non-Electron contexts.
+- Shared type definitions now centralize the preload contract to keep the IPC surface consistent across the service layer and the legacy API helpers.
+
 ## Performance Optimizations
 
 ### 1. Component Memoization

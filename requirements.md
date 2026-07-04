@@ -10,7 +10,7 @@
 * **APIs / Integrations:** Kubernetes API
 
 ## 3. Non-Functional Requirements
-* **Security:** The user should not be able to do anything else than browsing and downloading
+* **Security:** The user should not be able to do anything else than browsing and downloading, and all user-controlled values must be validated before any kubectl operation is executed
 * **Styling/UI:** Dark mode support, responsive design
 
 ## 4. Development Rules & Constraints

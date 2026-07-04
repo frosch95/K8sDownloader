@@ -10,6 +10,7 @@ export default [
     ignores: [
       "dist/",
       "dist-electron/",
+      "dist-types/",
       "node_modules/",
       "release/",
       "**/*.js",

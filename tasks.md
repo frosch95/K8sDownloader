@@ -6,6 +6,13 @@
 
 
 ## Done
+* [x] **Security:** Harden kubectl input validation to block malformed context, namespace, pod, and container identifiers.
+* [x] **Security:** Sanitize container paths before executing kubectl list/download commands to prevent traversal-style access.
+* [x] **Security:** Enable Electron sandboxing for the main browser window to reduce renderer-process attack surface.
+* [x] **Robustness:** Add a safe renderer-side fallback for the Electron bridge so the app no longer crashes when the preload API is unavailable outside a native Electron runtime.
+* [x] **Tests:** Add regression tests for Kubernetes identifier validation, container path sanitization, and the Electron fallback behavior.
+* [x] **Quality:** Verify linting, tests, and the production build after the latest hardening changes.
+* [x] **Documentation:** Document the new security hardening measures in the README, architecture notes, and requirements.
 * [x] **Feature:** remember the last selections in cluster and namespace and make it persistent over restarts
 * [x] **Feature:** Add a 'Select Cluster' and 'Select Namespace' item in the list and this should be selected first, to avoid connecting to a non existing cluster or namespace
 * [x] **Improvement:** the height of the pod list should use the complete space to support long list of pods

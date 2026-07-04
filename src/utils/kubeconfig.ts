@@ -66,6 +66,72 @@ export function getParentPath(dirPath: string): string {
   return parts.length === 0 ? "/" : "/" + parts.join("/");
 }
 
+const KUBERNETES_NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
+const CONTEXT_NAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+export function validateKubernetesIdentifier(
+  value: string,
+  fieldName: string,
+  options?: { allowUppercase?: boolean }
+): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    throw new Error(`${fieldName} is required`);
+  }
+
+  if (trimmed.length > 253) {
+    throw new Error(`${fieldName} is too long`);
+  }
+
+  const pattern = options?.allowUppercase
+    ? CONTEXT_NAME_PATTERN
+    : KUBERNETES_NAME_PATTERN;
+
+  if (!pattern.test(trimmed)) {
+    throw new Error(`${fieldName} contains unsupported characters`);
+  }
+
+  return trimmed;
+}
+
+export function sanitizeContainerPath(inputPath: string): string {
+  const trimmed = inputPath.trim();
+
+  if (!trimmed) {
+    throw new Error("Container path is required");
+  }
+
+  if (trimmed.includes("\0")) {
+    throw new Error("Container path contains invalid characters");
+  }
+
+  const hasControlCharacters = Array.from(trimmed).some((char) => {
+    const code = char.charCodeAt(0);
+    return code < 32 || code === 127;
+  });
+
+  if (hasControlCharacters) {
+    throw new Error("Container path contains invalid characters");
+  }
+
+  const normalized = trimmed.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+
+  if (segments.some((segment) => segment === "." || segment === "..")) {
+    throw new Error("Container path must not contain traversal segments");
+  }
+
+  const isUnixAbsolute = normalized.startsWith("/");
+  const isWindowsAbsolute = /^[a-zA-Z]:\//.test(trimmed);
+
+  if (!isUnixAbsolute && !isWindowsAbsolute) {
+    throw new Error("Container path must be absolute");
+  }
+
+  return trimmed;
+}
+
 // ── ls -la output parser (Linux containers) ────────────────────────────────
 
 /**

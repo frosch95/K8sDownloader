@@ -7,34 +7,12 @@
 
 import { KubernetesService } from "../services/kubernetesService";
 import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../shared/types/kubernetes";
+import type { ElectronApiBridge } from "../shared/types/api";
 
 // Re-export the ElectronAPI type from the preload for type safety
 declare global {
   interface Window {
-    electronAPI: {
-      getContexts: () => Promise<ContextInfo[]>;
-      getNamespaces: (contextName: string) => Promise<NamespaceInfo[]>;
-      getPods: (
-        contextName: string,
-        namespace: string
-      ) => Promise<PodInfo[]>;
-      listFiles: (
-        contextName: string,
-        namespace: string,
-        podName: string,
-        containerName: string | null,
-        dirPath: string
-      ) => Promise<FileEntry[]>;
-      showSaveDialog: (defaultName: string) => Promise<string | null>;
-      downloadFile: (
-        contextName: string,
-        namespace: string,
-        podName: string,
-        containerName: string | null,
-        sourcePath: string,
-        destPath: string
-      ) => Promise<void>;
-    };
+    electronAPI?: ElectronApiBridge;
   }
 }
 

@@ -2,7 +2,12 @@ import { spawnSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { parseLsOutput, parseDirOutput } from "../src/utils/kubeconfig";
+import {
+  parseLsOutput,
+  parseDirOutput,
+  sanitizeContainerPath,
+  validateKubernetesIdentifier,
+} from "../src/utils/kubeconfig";
 
 // ── Logger ─────────────────────────────────────────────────────────────────
 
@@ -77,10 +82,13 @@ export function getContexts(): ContextInfo[] {
 // ── API: Namespaces ────────────────────────────────────────────────────────
 
 export function getNamespaces(contextName: string): NamespaceInfo[] {
-  log(`getNamespaces: context="${contextName}"`);
+  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
+    allowUppercase: true,
+  });
+  log(`getNamespaces: context="${safeContextName}"`);
 
   const output = runKubectl([
-    "--context", contextName,
+    "--context", safeContextName,
     "get", "namespaces",
     "-o", "json",
   ]);
@@ -104,11 +112,15 @@ export function getPods(
   contextName: string,
   namespace: string
 ): PodInfo[] {
-  log(`getPods: context="${contextName}" namespace="${namespace}"`);
+  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
+    allowUppercase: true,
+  });
+  const safeNamespace = validateKubernetesIdentifier(namespace, "Namespace");
+  log(`getPods: context="${safeContextName}" namespace="${safeNamespace}"`);
 
   const output = runKubectl([
-    "--context", contextName,
-    "-n", namespace,
+    "--context", safeContextName,
+    "-n", safeNamespace,
     "get", "pods",
     "-o", "json",
   ]);
@@ -144,16 +156,26 @@ export function listFiles(
   containerName: string | null,
   dirPath: string
 ): FileEntry[] {
+  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
+    allowUppercase: true,
+  });
+  const safeNamespace = validateKubernetesIdentifier(namespace, "Namespace");
+  const safePodName = validateKubernetesIdentifier(podName, "Pod name");
+  const safeContainerName = containerName
+    ? validateKubernetesIdentifier(containerName, "Container name")
+    : null;
+  const safeDirPath = sanitizeContainerPath(dirPath);
+
   log(
-    `listFiles: context="${contextName}" ns="${namespace}" ` +
-    `pod="${podName}" container="${containerName || "(default)"}" ` +
-    `path="${dirPath}"`
+    `listFiles: context="${safeContextName}" ns="${safeNamespace}" ` +
+    `pod="${safePodName}" container="${safeContainerName || "(default)"}" ` +
+    `path="${safeDirPath}"`
   );
 
   // Try Linux ls first
   const lsArgs = buildExecArgs(
-    contextName, namespace, podName, containerName,
-    ["ls", "-la", dirPath]
+    safeContextName, safeNamespace, safePodName, safeContainerName,
+    ["ls", "-la", safeDirPath]
   );
 
   const lsResult = runKubectlRaw(lsArgs);
@@ -165,9 +187,9 @@ export function listFiles(
 
   // Fallback: Windows dir command
   log("listFiles: ls failed, trying Windows dir…");
-  const windowsDirPath = normalizeWindowsContainerPath(dirPath);
+  const windowsDirPath = normalizeWindowsContainerPath(safeDirPath);
   const dirArgs = buildExecArgs(
-    contextName, namespace, podName, containerName,
+    safeContextName, safeNamespace, safePodName, safeContainerName,
     ["cmd", "/c", "dir", windowsDirPath]
   );
 
@@ -195,16 +217,31 @@ export function downloadFile(
   sourcePath: string,
   destPath: string
 ): void {
+  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
+    allowUppercase: true,
+  });
+  const safeNamespace = validateKubernetesIdentifier(namespace, "Namespace");
+  const safePodName = validateKubernetesIdentifier(podName, "Pod name");
+  const safeContainerName = containerName
+    ? validateKubernetesIdentifier(containerName, "Container name")
+    : null;
+  const safeSourcePath = sanitizeContainerPath(sourcePath);
+
   log(
-    `downloadFile: context="${contextName}" ns="${namespace}" ` +
-    `pod="${podName}" container="${containerName || "(default)"}" ` +
-    `source="${sourcePath}" dest="${destPath}"`
+    `downloadFile: context="${safeContextName}" ns="${safeNamespace}" ` +
+    `pod="${safePodName}" container="${safeContainerName || "(default)"}" ` +
+    `source="${safeSourcePath}" dest="${destPath}"`
   );
 
-  const baseArgs = buildBaseExecArgs(contextName, namespace, podName, containerName);
+  const baseArgs = buildBaseExecArgs(
+    safeContextName,
+    safeNamespace,
+    safePodName,
+    safeContainerName
+  );
 
   // Try Linux cat first
-  const catResult = spawnSync("kubectl", [...baseArgs, "cat", sourcePath], {
+  const catResult = spawnSync("kubectl", [...baseArgs, "cat", safeSourcePath], {
     encoding: "buffer",
     timeout: 60000,
     maxBuffer: 200 * 1024 * 1024,
@@ -220,7 +257,7 @@ export function downloadFile(
 
   // Fallback: Windows cmd /c type
   log("downloadFile: cat failed, trying Windows type…");
-  const windowsSourcePath = normalizeWindowsContainerPath(sourcePath);
+  const windowsSourcePath = normalizeWindowsContainerPath(safeSourcePath);
   const typeResult = spawnSync("kubectl", [...baseArgs, "cmd", "/c", "type", windowsSourcePath], {
     encoding: "buffer",
     timeout: 60000,

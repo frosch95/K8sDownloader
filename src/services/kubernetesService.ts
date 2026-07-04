@@ -7,36 +7,30 @@
  */
 
 import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from '../shared/types/kubernetes';
-import { AppError, ErrorCode } from '../shared/types/errors';
+import type { ElectronApiBridge } from '../shared/types/api';
+import { AppError } from '../shared/types/errors';
+import { sanitizeContainerPath, validateKubernetesIdentifier } from '../utils/kubeconfig';
 
 // Define the Electron API interface for better type safety
 declare global {
   interface Window {
-    electronAPI: {
-      getContexts: () => Promise<ContextInfo[]>;
-      getNamespaces: (contextName: string) => Promise<NamespaceInfo[]>;
-      getPods: (
-        contextName: string,
-        namespace: string
-      ) => Promise<PodInfo[]>;
-      listFiles: (
-        contextName: string,
-        namespace: string,
-        podName: string,
-        containerName: string | null,
-        dirPath: string
-      ) => Promise<FileEntry[]>;
-      showSaveDialog: (defaultName: string) => Promise<string | null>;
-      downloadFile: (
-        contextName: string,
-        namespace: string,
-        podName: string,
-        containerName: string | null,
-        sourcePath: string,
-        destPath: string
-      ) => Promise<void>;
+    electronAPI?: ElectronApiBridge;
+  }
+}
+
+export function getElectronApi(): ElectronApiBridge {
+  if (typeof window === "undefined" || !window.electronAPI) {
+    return {
+      getContexts: async () => [],
+      getNamespaces: async () => [],
+      getPods: async () => [],
+      listFiles: async () => [],
+      showSaveDialog: async () => null,
+      downloadFile: async () => undefined,
     };
   }
+
+  return window.electronAPI;
 }
 
 /**
@@ -50,13 +44,7 @@ export class KubernetesService {
    * Returns the electronAPI, throwing if not available (e.g. running in browser).
    */
   private static get api() {
-    if (!window.electronAPI) {
-      throw new AppError(
-        ErrorCode.UNKNOWN_ERROR,
-        "Electron API not available. Please run this app inside Electron, not a browser."
-      );
-    }
-    return window.electronAPI;
+    return getElectronApi();
   }
   
   /**
@@ -82,10 +70,10 @@ export class KubernetesService {
    */
   static async getNamespaces(contextName: string): Promise<NamespaceInfo[]> {
     try {
-      if (!contextName) {
-        throw new AppError(ErrorCode.CONTEXT_NOT_FOUND, 'Context name is required');
-      }
-      return await this.api.getNamespaces(contextName);
+      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
+        allowUppercase: true,
+      });
+      return await this.api.getNamespaces(safeContextName);
     } catch (error) {
       throw AppError.fromError(error);
     }
@@ -104,13 +92,11 @@ export class KubernetesService {
     namespace: string
   ): Promise<PodInfo[]> {
     try {
-      if (!contextName) {
-        throw new AppError(ErrorCode.CONTEXT_NOT_FOUND, 'Context name is required');
-      }
-      if (!namespace) {
-        throw new AppError(ErrorCode.NAMESPACE_NOT_FOUND, 'Namespace is required');
-      }
-      return await this.api.getPods(contextName, namespace);
+      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
+        allowUppercase: true,
+      });
+      const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
+      return await this.api.getPods(safeContextName, safeNamespace);
     } catch (error) {
       throw AppError.fromError(error);
     }
@@ -135,21 +121,21 @@ export class KubernetesService {
     dirPath: string
   ): Promise<FileEntry[]> {
     try {
-      if (!contextName) {
-        throw new AppError(ErrorCode.CONTEXT_NOT_FOUND, 'Context name is required');
-      }
-      if (!namespace) {
-        throw new AppError(ErrorCode.NAMESPACE_NOT_FOUND, 'Namespace is required');
-      }
-      if (!podName) {
-        throw new AppError(ErrorCode.POD_NOT_FOUND, 'Pod name is required');
-      }
+      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
+        allowUppercase: true,
+      });
+      const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
+      const safePodName = validateKubernetesIdentifier(podName, 'Pod name');
+      const safeContainerName = containerName
+        ? validateKubernetesIdentifier(containerName, 'Container name')
+        : null;
+      const safeDirPath = sanitizeContainerPath(dirPath);
       return await this.api.listFiles(
-        contextName,
-        namespace,
-        podName,
-        containerName,
-        dirPath
+        safeContextName,
+        safeNamespace,
+        safePodName,
+        safeContainerName,
+        safeDirPath
       );
     } catch (error) {
       throw AppError.fromError(error);
@@ -177,18 +163,12 @@ export class KubernetesService {
     defaultFileName: string
   ): Promise<void> {
     try {
-      if (!contextName) {
-        throw new AppError(ErrorCode.CONTEXT_NOT_FOUND, 'Context name is required');
-      }
-      if (!namespace) {
-        throw new AppError(ErrorCode.NAMESPACE_NOT_FOUND, 'Namespace is required');
-      }
-      if (!podName) {
-        throw new AppError(ErrorCode.POD_NOT_FOUND, 'Pod name is required');
-      }
-      if (!sourcePath) {
-        throw new AppError(ErrorCode.FILE_NOT_FOUND, 'Source path is required');
-      }
+      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
+        allowUppercase: true,
+      });
+      const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
+      const safePodName = validateKubernetesIdentifier(podName, 'Pod name');
+      const safeSourcePath = sanitizeContainerPath(sourcePath);
 
       const destPath = await this.api.showSaveDialog(defaultFileName);
       if (!destPath) {
@@ -197,11 +177,11 @@ export class KubernetesService {
       }
 
       await this.api.downloadFile(
-        contextName,
-        namespace,
-        podName,
-        containerName,
-        sourcePath,
+        safeContextName,
+        safeNamespace,
+        safePodName,
+        containerName ? validateKubernetesIdentifier(containerName, 'Container name') : null,
+        safeSourcePath,
         destPath
       );
     } catch (error) {
