@@ -20,6 +20,7 @@ declare global {
 
 export function getElectronApi(): ElectronApiBridge {
   if (typeof window === "undefined" || !window.electronAPI) {
+    console.warn("[K8s] electronAPI not available in renderer – using empty fallback");
     return {
       getContexts: async () => [],
       getNamespaces: async () => [],

@@ -7,7 +7,9 @@ import { initializeUIStore } from "./stores/uiStore";
 
 // Initialize stores before rendering
 initializeUIStore();
-initializeKubeStore();
+initializeKubeStore().catch((err) => {
+  console.error("Failed to initialize kube store:", err);
+});
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

@@ -5,6 +5,17 @@ interface ErrorDialogProps {
   onClose: () => void;
 }
 
+function formatMessage(message: string | null): string {
+  if (!message) return "";
+
+  const normalized = message.toLowerCase();
+  if (normalized.includes("kubectl") || normalized.includes("kubeconfig")) {
+    return `${message}\n\nSuggested next steps:\n• Install kubectl and make sure it is available on PATH.\n• Set KUBECTL_PATH or KUBECTL_BIN to the full kubectl executable path.\n• Verify your kubeconfig with kubectl config view.`;
+  }
+
+  return message;
+}
+
 export function ErrorDialog({ message, onClose }: ErrorDialogProps) {
   useEffect(() => {
     if (!message) return;
@@ -15,7 +26,9 @@ export function ErrorDialog({ message, onClose }: ErrorDialogProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [message, onClose]);
 
-  if (!message) return null;
+  const dialogMessage = formatMessage(message);
+
+  if (!dialogMessage) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -30,7 +43,7 @@ export function ErrorDialog({ message, onClose }: ErrorDialogProps) {
         </div>
         <div className="px-6 py-4 max-h-64 overflow-y-auto">
           <p className="text-k8s-text text-sm leading-relaxed whitespace-pre-wrap">
-            {message}
+            {dialogMessage}
           </p>
         </div>
         <div className="px-6 py-3 border-t border-k8s-border/50 flex justify-end">

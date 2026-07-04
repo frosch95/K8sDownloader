@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import {
   getContexts,
@@ -28,12 +29,32 @@ if (isDev) {
   app.setPath("userData", userDataPath);
 }
 
+async function loadRenderer(win: BrowserWindow): Promise<void> {
+  if (isDev) {
+    try {
+      await win.loadURL("http://localhost:5173");
+      return;
+    } catch (error) {
+      console.warn("Development server not available, falling back to the built app.", error);
+    }
+  }
+
+  try {
+    await win.loadFile(path.join(__dirname, "../dist/index.html"));
+  } catch (error) {
+    console.error("Failed to load built app:", error);
+  }
+}
+
 function createWindow(): BrowserWindow {
   // Prevent creating a second window if one already exists
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.focus();
     return mainWindow;
   }
+
+  const preloadPath = path.join(__dirname, "preload.js");
+  console.log(`[Main] preload path: ${preloadPath}, exists: ${fs.existsSync(preloadPath)}`);
 
   const win = new BrowserWindow({
     width: 1200,
@@ -44,20 +65,17 @@ function createWindow(): BrowserWindow {
     backgroundColor: "#0f172a",
     icon: path.join(__dirname, "..", "public", "icon.png"),
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   });
 
-  if (isDev) {
-    win.loadURL("http://localhost:5173");
-    // DevTools are opened on demand via Ctrl+Shift+I; auto-opening
-    // produces noisy Autofill/VE-context errors in the console.
-  } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
-  }
+  void loadRenderer(win);
+
+  // DevTools are opened on demand via Ctrl+Shift+I; auto-opening
+  // produces noisy Autofill/VE-context errors in the console.
 
   // Log renderer crashes to help debugging
   win.webContents.on(

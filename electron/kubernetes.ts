@@ -2,6 +2,7 @@ import { spawnSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { resolveKubectlCommand } from "../src/utils/kubectl";
 import {
   parseLsOutput,
   parseDirOutput,
@@ -241,7 +242,7 @@ export function downloadFile(
   );
 
   // Try Linux cat first
-  const catResult = spawnSync("kubectl", [...baseArgs, "cat", safeSourcePath], {
+  const catResult = spawnSync(resolveKubectlCommand(), [...baseArgs, "cat", safeSourcePath], {
     encoding: "buffer",
     timeout: 60000,
     maxBuffer: 200 * 1024 * 1024,
@@ -258,7 +259,7 @@ export function downloadFile(
   // Fallback: Windows cmd /c type
   log("downloadFile: cat failed, trying Windows type…");
   const windowsSourcePath = normalizeWindowsContainerPath(safeSourcePath);
-  const typeResult = spawnSync("kubectl", [...baseArgs, "cmd", "/c", "type", windowsSourcePath], {
+  const typeResult = spawnSync(resolveKubectlCommand(), [...baseArgs, "cmd", "/c", "type", windowsSourcePath], {
     encoding: "buffer",
     timeout: 60000,
     maxBuffer: 200 * 1024 * 1024,
@@ -343,7 +344,7 @@ function normalizeWindowsContainerPath(inputPath: string): string {
 function runKubectlRaw(args: string[]): ReturnType<typeof spawnSync> {
   log(`runKubectl: executing kubectl ${args.join(" ")}`);
 
-  const result = spawnSync("kubectl", args, {
+  const result = spawnSync(resolveKubectlCommand(), args, {
     encoding: "utf-8",
     timeout: 30000,
     maxBuffer: 50 * 1024 * 1024,

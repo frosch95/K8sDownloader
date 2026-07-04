@@ -24,6 +24,15 @@ describe("ErrorDialog", () => {
     expect(screen.getByText("Error")).toBeInTheDocument();
   });
 
+  it("adds guidance when the message mentions kubectl or kubeconfig", () => {
+    render(
+      <ErrorDialog message="kubectl is not installed or not on PATH" onClose={vi.fn()} />
+    );
+
+    expect(screen.getByText(/Suggested next steps/i)).toBeInTheDocument();
+    expect(screen.getByText(/KUBECTL_PATH/i)).toBeInTheDocument();
+  });
+
   it("renders the Dismiss button", () => {
     render(
       <ErrorDialog message="Oops" onClose={vi.fn()} />

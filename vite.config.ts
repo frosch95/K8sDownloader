@@ -32,9 +32,9 @@ export default defineConfig({
       },
       {
         entry: "electron/preload.ts",
-        onstart(args) {
-          args.reload();
-        },
+        // onstart bewusst weggelassen – args.reload() verursacht
+        // in manchen vite-plugin-electron-Versionen einen zweiten
+        // Electron-Start und damit ein zweites Fenster.
         vite: {
           build: {
             outDir: "dist-electron",
