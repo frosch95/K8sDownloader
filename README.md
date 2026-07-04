@@ -1,6 +1,6 @@
 <img src="public/icon.svg" width="160" alt="Icon">
 
-# k8s Downloader
+# K8sDownloader
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.2.3-blue.svg)](https://github.com/frosch95/k8sdownloader/releases)

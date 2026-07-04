@@ -15,7 +15,7 @@ import { useKubeStore } from "./stores/kubeStore";
 import { AppError, ErrorCode } from "./shared/types/errors";
 import type { PodInfo } from "./shared/types/kubernetes";
 
-import { UI } from "./shared/constants";
+import { UI, APP } from "./shared/constants";
 import k8sIcon from "/icon.svg";
 
 const { SIDEBAR_MIN, SIDEBAR_MAX, SIDEBAR_DEFAULT } = UI;
@@ -121,7 +121,7 @@ function App() {
         <div className="flex items-center gap-3">
           <img src={k8sIcon} alt="Kubernetes" className="w-12 h-12" />
           <h1 className="text-lg font-bold text-k8s-text tracking-tight">
-            k8s Downloader
+            K8sDownloader
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -171,7 +171,7 @@ function App() {
 
           <div className="shrink-0 px-4 py-3 border-t border-k8s-border">
             <p className="text-[11px] text-k8s-muted/60 text-center">
-              MIT License | &copy; 2026
+              MIT License | &copy; 2026 | v{APP.VERSION}
             </p>
           </div>
 
