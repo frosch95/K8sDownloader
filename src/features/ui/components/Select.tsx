@@ -44,8 +44,8 @@ export const Select = forwardRef(
         )}
         <select
           ref={ref}
-          className={`${sizeClasses[size]} w-full bg-k8s-darker ${borderColor} rounded-lg text-k8s-text 
-          focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 transition-colors ${className}`}
+          className={`${sizeClasses[size]} w-full bg-gradient-subtle ${borderColor} rounded-lg text-k8s-text 
+          focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 transition-all shadow-soft ${className}`}
           {...props}
         >
           {options.map((option) => (

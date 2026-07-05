@@ -28,9 +28,9 @@ export function ProgressBar({
   };
 
   return (
-    <div className={`w-full bg-k8s-surface/50 rounded-full overflow-hidden ${sizeStyles[size]} ${className}`}>
+    <div className={`w-full bg-k8s-surface/30 rounded-full overflow-hidden ${sizeStyles[size]} ${className} shadow-inner`}>
       <div
-        className={`${color} h-full rounded-full transition-all duration-300`}
+        className={`h-full rounded-full transition-all duration-500 ease-out ${color === 'bg-k8s-blue' ? 'bg-gradient-to-r from-k8s-blue to-k8s-blue/80' : color}`}
         style={{ width: `${percentage}%` }}
         role="progressbar"
         aria-valuenow={value}

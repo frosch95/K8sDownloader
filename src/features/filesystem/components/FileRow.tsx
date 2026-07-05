@@ -25,20 +25,20 @@ export const FileRow = memo(function FileRow({
   return (
     <tr
       key={entry.path}
-      className={`transition-colors ${
+      className={`transition-all ${
         entry.isDir
-          ? "hover:bg-k8s-surface/30 cursor-pointer"
-          : "hover:bg-k8s-surface/20"
+          ? "hover:bg-gradient-to-r hover:from-k8s-link/5 hover:to-transparent cursor-pointer"
+          : "hover:bg-k8s-surface/10"
       }`}
       onDoubleClick={() => entry.isDir && onNavigate(entry.path)}
     >
       <td className="px-4 py-2.5">
         <button
           onClick={() => entry.isDir && onNavigate(entry.path)}
-          className="flex items-center gap-2 text-left w-full"
+          className="flex items-center gap-2.5 text-left w-full"
           disabled={!entry.isDir}
         >
-          <span className="text-lg">{getFileIcon(entry.isDir)}</span>
+          <span className="text-lg shrink-0">{getFileIcon(entry.isDir)}</span>
           <span
             className={`truncate max-w-[250px] sm:max-w-[400px] ${
               entry.isDir ? "text-k8s-link font-medium" : "text-k8s-text"
@@ -49,7 +49,11 @@ export const FileRow = memo(function FileRow({
         </button>
       </td>
       <td className="px-4 py-2.5 text-k8s-muted hidden sm:table-cell">
-        {entry.isDir ? "—" : formatFileSize(entry.size)}
+        {entry.isDir ? (
+          <span className="text-k8s-border">—</span>
+        ) : (
+          formatFileSize(entry.size)
+        )}
       </td>
       <td className="px-4 py-2.5 text-k8s-muted hidden md:table-cell">
         {entry.modified}
@@ -59,11 +63,11 @@ export const FileRow = memo(function FileRow({
           <button
             onClick={() => onDownload(entry)}
             disabled={downloading === entry.name}
-            className="text-k8s-muted hover:text-k8s-text transition-colors"
+            className="p-1.5 rounded-md text-k8s-muted hover:text-k8s-text hover:bg-k8s-link/10 transition-all hover-lift"
             title="Download file"
           >
             {downloading === entry.name ? (
-              <span className="animate-spin">⏳</span>
+              <span className="w-4 h-4 border-2 border-k8s-link border-t-transparent rounded-full animate-spin block" />
             ) : (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

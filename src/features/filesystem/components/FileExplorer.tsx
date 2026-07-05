@@ -81,9 +81,16 @@ export const FileExplorer = memo(function FileExplorer({
   if (disabled) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-k8s-muted text-sm">
-          Select a context, namespace, and pod to browse files
-        </p>
+        <div className="text-center space-y-3">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-subtle flex items-center justify-center shadow-soft">
+            <svg className="w-8 h-8 text-k8s-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-k8s-muted text-sm">
+            Select a context, namespace, and pod to browse files
+          </p>
+        </div>
       </div>
     );
   }
@@ -91,7 +98,7 @@ export const FileExplorer = memo(function FileExplorer({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Breadcrumb bar */}
-      <div className="flex items-center gap-1.5 px-4 py-2.5 bg-k8s-darker border-b border-k8s-border overflow-x-auto">
+      <div className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-subtle border-b border-k8s-border overflow-x-auto shadow-soft">
         <button
           onClick={handleBack}
           disabled={currentPath === "/"}
@@ -134,25 +141,30 @@ export const FileExplorer = memo(function FileExplorer({
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex items-center gap-3 text-k8s-muted">
-              <span className="animate-spin text-xl">⏳</span>
+              <div className="w-5 h-5 border-2 border-k8s-link border-t-transparent rounded-full animate-spin" />
               <span className="text-sm">Loading files…</span>
             </div>
           </div>
         ) : files.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-k8s-muted text-sm">Empty directory</p>
+            <div className="text-center space-y-2">
+              <svg className="w-10 h-10 mx-auto text-k8s-border/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <p className="text-k8s-muted text-sm">Empty directory</p>
+            </div>
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-k8s-darker">
+            <thead className="sticky top-0 bg-k8s-darker/90 backdrop-blur-sm">
               <tr className="text-left text-xs text-k8s-muted uppercase tracking-wider">
-                <th className="px-4 py-2 font-medium">Name</th>
-                <th className="px-4 py-2 font-medium hidden sm:table-cell">Size</th>
-                <th className="px-4 py-2 font-medium hidden md:table-cell">Modified</th>
-                <th className="px-4 py-2 font-medium w-20">Actions</th>
+                <th className="px-4 py-2.5 font-medium">Name</th>
+                <th className="px-4 py-2.5 font-medium hidden sm:table-cell">Size</th>
+                <th className="px-4 py-2.5 font-medium hidden md:table-cell">Modified</th>
+                <th className="px-4 py-2.5 font-medium w-20">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-k8s-border/30">
+            <tbody className="divide-y divide-k8s-border/20">
               {files.map((entry) => (
                 <MemoizedFileRow
                   key={entry.path}
@@ -168,11 +180,14 @@ export const FileExplorer = memo(function FileExplorer({
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-4 py-1.5 bg-k8s-darker border-t border-k8s-border text-xs text-k8s-muted">
-        <span>
+      <div className="flex items-center justify-between px-4 py-1.5 bg-gradient-subtle border-t border-k8s-border text-xs text-k8s-muted shadow-soft">
+        <span className="flex items-center gap-1.5">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
           {files.length} item{files.length !== 1 ? "s" : ""}
         </span>
-        <span>
+        <span className="truncate ml-4">
           {contextName} / {namespace} / {podName}
         </span>
       </div>

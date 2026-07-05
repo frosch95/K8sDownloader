@@ -117,12 +117,20 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-k8s-darker">
       {/* Header */}
-      <header className="shrink-0 flex items-center justify-between px-6 py-3 bg-k8s-dark border-b border-k8s-border">
+      <header className="shrink-0 flex items-center justify-between px-6 py-3 bg-gradient-header border-b border-k8s-border shadow-soft">
         <div className="flex items-center gap-3">
-          <img src={k8sIcon} alt="Kubernetes" className="w-12 h-12" />
-          <h1 className="text-lg font-bold text-k8s-text tracking-tight">
-            K8sDownloader
-          </h1>
+          <div className="relative">
+            <img src={k8sIcon} alt="Kubernetes" className="w-12 h-12 relative z-10" />
+            <div className="absolute inset-0 bg-gradient-accent opacity-10 blur-xl rounded-full" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-k8s-text tracking-tight">
+              K8sDownloader
+            </h1>
+            <p className="text-[11px] text-k8s-muted/60 -mt-0.5">
+              File Browser for Kubernetes
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-k8s-muted hidden sm:inline">
@@ -136,10 +144,10 @@ function App() {
       <div className="flex-1 flex min-h-0">
         {/* Sidebar */}
         <aside
-          className="shrink-0 border-r border-k8s-border bg-k8s-dark flex flex-col relative"
+          className="shrink-0 border-r border-k8s-border bg-gradient-sidebar flex flex-col relative"
           style={{ width: sidebarWidth }}
         >
-          <div className="p-4 space-y-5 flex-1 min-h-0">
+          <div className="p-4 space-y-5 flex-1 min-h-0 overflow-y-auto">
             <ErrorBoundary>
               <ContextSelector
                 contexts={ctx.contexts}
@@ -169,7 +177,7 @@ function App() {
             </ErrorBoundary>
           </div>
 
-          <div className="shrink-0 px-4 py-3 border-t border-k8s-border">
+          <div className="shrink-0 px-4 py-3 border-t border-k8s-border bg-k8s-surface/30">
             <p className="text-[11px] text-k8s-muted/60 text-center">
               MIT License | &copy; 2026 | v{APP.VERSION}
             </p>
@@ -178,13 +186,13 @@ function App() {
           {/* Drag handle */}
           <div
             className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize
-                       hover:bg-k8s-blue/50 active:bg-k8s-blue transition-colors"
+                       hover:bg-gradient-accent/50 active:bg-gradient-accent transition-colors"
             onMouseDown={handleDragStart}
           />
         </aside>
 
         {/* File explorer area */}
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 bg-k8s-darker">
           <ErrorBoundary>
             <FileExplorer
               files={fs.files}

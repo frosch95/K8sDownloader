@@ -20,12 +20,12 @@ export function Badge({
   className = '',
 }: BadgeProps) {
   const variantStyles = {
-    primary: 'bg-k8s-blue/20 text-k8s-link',
-    success: 'bg-green-500/20 text-green-400',
-    warning: 'bg-yellow-500/20 text-yellow-400',
-    danger: 'bg-red-500/20 text-red-400',
-    info: 'bg-blue-500/20 text-blue-400',
-    neutral: 'bg-k8s-surface/50 text-k8s-muted',
+    primary: 'bg-gradient-accent/15 text-k8s-link',
+    success: 'bg-gradient-to-r from-green-500/15 to-green-500/5 text-green-400',
+    warning: 'bg-gradient-to-r from-yellow-500/15 to-yellow-500/5 text-yellow-400',
+    danger: 'bg-gradient-to-r from-red-500/15 to-red-500/5 text-red-400',
+    info: 'bg-gradient-to-r from-blue-500/15 to-blue-500/5 text-blue-400',
+    neutral: 'bg-gradient-to-r from-k8s-surface/40 to-k8s-surface/20 text-k8s-muted',
   };
 
   const sizeStyles = {

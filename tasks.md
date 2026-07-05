@@ -4,7 +4,9 @@
 
 ## In Progress
 
+
 ## Done
+* [x] Make a more modern looking UI. Use subtle gradients.
 * [x] **Improvements:** show application version in the ui next to license information
 * [x] **Security:** Harden kubectl input validation to block malformed context, namespace, pod, and container identifiers.
 * [x] **Security:** Sanitize container paths before executing kubectl list/download commands to prevent traversal-style access.

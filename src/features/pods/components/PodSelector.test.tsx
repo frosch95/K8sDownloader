@@ -160,6 +160,6 @@ describe("PodSelector", () => {
       />
     );
     const button = screen.getByText("nginx-deployment-abc").closest("button");
-    expect(button?.className).toContain("bg-k8s-blue");
+    expect(button?.className).toContain("bg-gradient-accent/10");
   });
 });

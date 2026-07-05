@@ -32,13 +32,13 @@ export function Button({
   title,
   ariaLabel,
 }: ButtonProps) {
-  const baseStyles = "rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 disabled:opacity-40 disabled:cursor-not-allowed";
+  const baseStyles = "rounded-lg focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 disabled:opacity-40 disabled:cursor-not-allowed hover-lift";
   
   const variantStyles = {
-    primary: "bg-k8s-blue text-white hover:bg-k8s-blue/90",
-    secondary: "bg-k8s-surface text-k8s-text hover:bg-k8s-surface/80",
-    ghost: "text-k8s-muted hover:text-k8s-text hover:bg-k8s-surface/50",
-    danger: "bg-red-500 text-white hover:bg-red-600",
+    primary: "bg-gradient-accent text-white shadow-glow hover:opacity-90",
+    secondary: "bg-k8s-surface/60 text-k8s-text hover:bg-k8s-surface/90 border border-k8s-border/30 backdrop-blur-sm",
+    ghost: "text-k8s-muted hover:text-k8s-text hover:bg-k8s-surface/30",
+    danger: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg hover:opacity-90",
   };
   
   const sizeStyles = {

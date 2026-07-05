@@ -89,8 +89,8 @@ describe('CustomSelect', () => {
     const selectedOption = screen.getByRole('option', { name: 'Option 2' });
     const otherOption = screen.getByRole('option', { name: 'Option 1' });
 
-    expect(selectedOption).toHaveClass('bg-k8s-border/50');
-    expect(otherOption).not.toHaveClass('bg-k8s-border/50');
+    expect(selectedOption).toHaveClass('bg-gradient-accent/10');
+    expect(otherOption).not.toHaveClass('bg-gradient-accent/10');
   });
 
   it('should have proper aria attributes', () => {

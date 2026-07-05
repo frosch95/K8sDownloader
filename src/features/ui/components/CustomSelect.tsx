@@ -65,9 +65,9 @@ export function CustomSelect<T extends string>({
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        className={`w-full flex items-center justify-between bg-k8s-darker border border-k8s-border rounded-lg text-k8s-text 
-                   focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 transition-colors ${sizeClasses[size]}
-                   ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`w-full flex items-center justify-between bg-gradient-subtle border border-k8s-border rounded-lg text-k8s-text 
+                   focus:outline-none focus:ring-2 focus:ring-k8s-blue/40 transition-all shadow-soft ${sizeClasses[size]}
+                   ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-k8s-link/30 hover-lift'}`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -75,7 +75,7 @@ export function CustomSelect<T extends string>({
       >
         <span className="truncate">{selectedLabel}</span>
         <svg 
-          className="w-4 h-4 ml-2 shrink-0" 
+          className={`w-4 h-4 ml-2 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -86,14 +86,16 @@ export function CustomSelect<T extends string>({
 
       {isOpen && (
         <ul
-          className="absolute z-10 w-full mt-1 bg-k8s-surface border border-k8s-border rounded-lg shadow-lg overflow-hidden"
+          className="absolute z-10 w-full mt-1 bg-k8s-surface/90 backdrop-blur-lg border border-k8s-border rounded-lg shadow-xl shadow-black/10 overflow-hidden animate-[fadeIn_0.15s_ease-out]"
           role="listbox"
         >
           {options.map((option) => (
             <li
               key={option.value}
-              className={`px-3 py-2 text-sm cursor-pointer hover:bg-k8s-border/30 
-                         ${option.value === selectedOption?.value ? 'bg-k8s-border/50' : ''}
+              className={`px-3 py-2 text-sm cursor-pointer transition-all
+                         ${option.value === selectedOption?.value 
+                           ? 'bg-gradient-accent/10 text-k8s-link font-medium border-l-2 border-l-k8s-link' 
+                           : 'hover:bg-k8s-border/20 hover:border-l-2 hover:border-l-k8s-link/30 text-k8s-text border-l-2 border-l-transparent'}
                          ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !option.disabled && handleSelect(option)}
               role="option"

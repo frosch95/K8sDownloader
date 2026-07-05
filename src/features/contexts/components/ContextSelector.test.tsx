@@ -89,7 +89,7 @@ describe("ContextSelector", () => {
         onRefresh={onRefresh}
       />
     );
-    fireEvent.click(screen.getByText("🔄 Refresh"));
+    fireEvent.click(screen.getByText("Refresh"));
     expect(onRefresh).toHaveBeenCalledOnce();
   });
 

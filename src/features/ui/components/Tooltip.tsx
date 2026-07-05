@@ -39,12 +39,12 @@ export function Tooltip({
       </div>
       {isVisible && (
         <div
-          className={`absolute z-50 px-3 py-2 text-sm text-white bg-k8s-darker border border-k8s-border rounded-lg shadow-lg 
+          className={`absolute z-50 px-3 py-2 text-sm text-k8s-text bg-gradient-subtle border border-k8s-border/60 rounded-lg shadow-xl shadow-black/10 backdrop-blur-sm
           ${positionStyles[position]} whitespace-nowrap`}
           role="tooltip"
         >
           {content}
-          <div className={`absolute w-2 h-2 bg-k8s-darker border-t border-l border-k8s-border rotate-45 
+          <div className={`absolute w-2 h-2 bg-gradient-subtle border-t border-l border-k8s-border/60 rotate-45 
           ${position === 'top' ? 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2' : ''}
           ${position === 'bottom' ? 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''}
           ${position === 'left' ? 'right-0 top-1/2 -translate-y-1/2 translate-x-1/2' : ''}
