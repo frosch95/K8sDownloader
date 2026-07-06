@@ -112,6 +112,15 @@ function App() {
     fsSetError();
   }, [clearGlobalError, ctxSetError, nsSetError, podsSetError, fsSetError]);
 
+  const handleOpenLicenses = useCallback(async () => {
+    const result = await window.electronAPI?.openThirdPartyLicenses();
+    if (result && !result.success) {
+      useKubeStore.getState().setGlobalError(
+        new AppError(ErrorCode.UNKNOWN_ERROR, result.error)
+      );
+    }
+  }, []);
+
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
@@ -180,6 +189,13 @@ function App() {
           <div className="shrink-0 px-4 py-3 border-t border-k8s-border bg-k8s-surface/30">
             <p className="text-[11px] text-k8s-muted/60 text-center">
               MIT License | &copy; 2026 | v{APP.VERSION}
+              <button
+                onClick={handleOpenLicenses}
+                className="ml-2 underline hover:text-k8s-accent transition-colors cursor-pointer"
+                title="View third-party licenses"
+              >
+                Licenses
+              </button>
             </p>
           </div>
 

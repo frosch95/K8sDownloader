@@ -33,6 +33,8 @@ export interface ElectronApiBridge {
     sourcePath: string,
     destPath: string
   ) => Promise<void>;
+  getThirdPartyLicenses: () => Promise<{ success: true; content: string } | { success: false; error: string }>;
+  openThirdPartyLicenses: () => Promise<{ success: true } | { success: false; error: string }>;
 }
 
 export type ConnectionStep = "context" | "namespace" | "pod" | "browse";

@@ -28,6 +28,8 @@ export function getElectronApi(): ElectronApiBridge {
       listFiles: async () => [],
       showSaveDialog: async () => null,
       downloadFile: async () => undefined,
+      getThirdPartyLicenses: async () => ({ success: false as const, error: "Not available outside Electron." }),
+      openThirdPartyLicenses: async () => ({ success: false as const, error: "Not available outside Electron." }),
     };
   }
 

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -154,8 +154,41 @@ function registerIpcHandlers(): void {
   );
 }
 
+function getThirdPartyLicensesPath(): string {
+  const appPath = isDev
+    ? path.join(__dirname, "..", "THIRD-PARTY-LICENSES.txt")
+    : path.join(process.resourcesPath, "THIRD-PARTY-LICENSES.txt");
+  return appPath;
+}
+
+function registerLicenseHandlers(): void {
+  ipcMain.handle("get-third-party-licenses", async () => {
+    const licensePath = getThirdPartyLicensesPath();
+    try {
+      const content = fs.readFileSync(licensePath, "utf-8");
+      return { success: true as const, content };
+    } catch {
+      return { success: false as const, error: "Third-party licenses file not found." };
+    }
+  });
+
+  ipcMain.handle("open-third-party-licenses", async () => {
+    const licensePath = getThirdPartyLicensesPath();
+    try {
+      if (fs.existsSync(licensePath)) {
+        await shell.openPath(licensePath);
+        return { success: true as const };
+      }
+      return { success: false as const, error: "Third-party licenses file not found." };
+    } catch (err) {
+      return { success: false as const, error: String(err) };
+    }
+  });
+}
+
 app.whenReady().then(() => {
   registerIpcHandlers();
+  registerLicenseHandlers();
   createWindow();
 
   app.on("activate", () => {

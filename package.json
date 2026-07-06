@@ -10,9 +10,10 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "pnpm generate-licenses && tsc -b && vite build",
     "preview": "vite preview",
     "electron:dev": "vite",
+    "generate-licenses": "generate-license-file --input package.json --output THIRD-PARTY-LICENSES.txt --overwrite",
     "electron:build": "pnpm build && electron-builder",
     "electron:start": "electron .",
     "start": "pnpm build && pnpm electron:start",
@@ -45,6 +46,7 @@
     "electron-builder": "^26.15.3",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "generate-license-file": "^4.2.1",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.16",
@@ -66,7 +68,14 @@
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "THIRD-PARTY-LICENSES.txt"
+    ],
+    "extraResources": [
+      {
+        "from": "THIRD-PARTY-LICENSES.txt",
+        "to": "THIRD-PARTY-LICENSES.txt"
+      }
     ],
     "win": {
       "target": [

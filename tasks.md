@@ -4,8 +4,8 @@
 
 ## In Progress
 
-
 ## Done
+* [x] The deployment build should generate an additional license file that contains all the liceneses of the dependencies. The file should always be up to date to the dependencies when the deployment is build.
 * [x] Make a more modern looking UI. Use subtle gradients.
 * [x] **Improvements:** show application version in the ui next to license information
 * [x] **Security:** Harden kubectl input validation to block malformed context, namespace, pod, and container identifiers.

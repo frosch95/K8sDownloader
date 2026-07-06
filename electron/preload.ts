@@ -47,6 +47,12 @@ const electronAPI = {
       sourcePath,
       destPath
     ),
+
+  getThirdPartyLicenses: (): Promise<{ success: true; content: string } | { success: false; error: string }> =>
+    ipcRenderer.invoke("get-third-party-licenses"),
+
+  openThirdPartyLicenses: (): Promise<{ success: true } | { success: false; error: string }> =>
+    ipcRenderer.invoke("open-third-party-licenses"),
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);
