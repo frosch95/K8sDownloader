@@ -14,6 +14,12 @@ const pkg = JSON.parse(
 );
 
 export default defineConfig({
+    // ---> HIER HINZUFÜGEN: Verhindert das Sperren von Cache-Dateien unter Windows <---
+  server: {
+    watch: {
+      ignored: ['**/.electron-cache/**']
+    }
+  },
   plugins: [
     react(),
     electron([
