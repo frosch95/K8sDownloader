@@ -1,4 +1,4 @@
-import { spawnSync } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -208,16 +208,19 @@ export function listFiles(
 // ── File download via kubectl exec ─────────────────────────────────────────
 //
 // Tries Linux cat first; falls back to Windows cmd /c type.
-// Uses raw spawnSync with encoding:buffer for binary safety.
+// Streams stdout straight to destPath so download size is never limited by
+// an in-memory buffer (spawnSync's maxBuffer caused ENOBUFS on large files).
 
-export function downloadFile(
+const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
+
+export async function downloadFile(
   contextName: string,
   namespace: string,
   podName: string,
   containerName: string | null,
   sourcePath: string,
   destPath: string
-): void {
+): Promise<void> {
   const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
     allowUppercase: true,
   });
@@ -242,45 +245,120 @@ export function downloadFile(
   );
 
   // Try Linux cat first
-  const catResult = spawnSync(resolveKubectlCommand(), [...baseArgs, "cat", safeSourcePath], {
-    encoding: "buffer",
-    timeout: 60000,
-    maxBuffer: 200 * 1024 * 1024,
-    windowsHide: true,
-    shell: false,
-  });
+  const catAttempt = await runExecToFile([...baseArgs, "cat", safeSourcePath], destPath);
 
-  if (catResult.status === 0) {
-    fs.writeFileSync(destPath, catResult.stdout);
-    log(`downloadFile: written ${catResult.stdout.length} bytes via cat`);
+  if (catAttempt.success) {
+    log(`downloadFile: written ${catAttempt.bytesWritten} bytes via cat`);
     return;
   }
 
+  // "cat" only fails to *start* on Windows containers (no such binary on PATH).
+  // Any other failure (missing file, permission denied, ...) is the real error
+  // for this Linux-style attempt and must not be masked by the Windows fallback.
+  if (!isExecutableNotFoundError(catAttempt.stderr, "cat")) {
+    throw new Error(`kubectl exec failed: ${catAttempt.stderr || "cat failed"}`);
+  }
+
   // Fallback: Windows cmd /c type
-  log("downloadFile: cat failed, trying Windows type…");
+  log("downloadFile: cat not available in container, trying Windows type…");
   const windowsSourcePath = normalizeWindowsContainerPath(safeSourcePath);
-  const typeResult = spawnSync(resolveKubectlCommand(), [...baseArgs, "cmd", "/c", "type", windowsSourcePath], {
-    encoding: "buffer",
-    timeout: 60000,
-    maxBuffer: 200 * 1024 * 1024,
-    windowsHide: true,
-    shell: false,
-  });
+  const typeAttempt = await runExecToFile(
+    [...baseArgs, "cmd", "/c", "type", windowsSourcePath],
+    destPath
+  );
 
-  if (typeResult.error) {
-    throw new Error(`kubectl exec failed: ${typeResult.error.message}`);
+  if (!typeAttempt.success) {
+    throw new Error(`kubectl exec failed: ${typeAttempt.stderr || "type failed"}`);
   }
 
-  if (typeResult.status !== 0) {
-    const stderr = (typeResult.stderr || "").toString().trim();
-    throw new Error(`kubectl exec failed: ${stderr || `exit code ${typeResult.status}`}`);
-  }
-
-  fs.writeFileSync(destPath, typeResult.stdout);
-  log(`downloadFile: written ${typeResult.stdout.length} bytes via type`);
+  log(`downloadFile: written ${typeAttempt.bytesWritten} bytes via type`);
 }
 
 // ── Internal helpers ───────────────────────────────────────────────────────
+
+interface ExecToFileResult {
+  success: boolean;
+  stderr: string;
+  bytesWritten: number;
+}
+
+/**
+ * Runs `kubectl <execArgs>` and streams its stdout straight into destPath,
+ * so download size is never bounded by an in-memory buffer. stderr is exec
+ * diagnostics only, so it stays small and is collected for error inspection.
+ */
+function execToFile(
+  execArgs: string[],
+  destPath: string,
+  timeoutMs: number
+): Promise<ExecToFileResult> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(resolveKubectlCommand(), execArgs, { windowsHide: true, shell: false });
+    const writeStream = fs.createWriteStream(destPath);
+    const stderrChunks: Buffer[] = [];
+    let bytesWritten = 0;
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      child.kill();
+    }, timeoutMs);
+
+    const fail = (err: Error): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.kill();
+      writeStream.destroy();
+      reject(err);
+    };
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      bytesWritten += chunk.length;
+    });
+    child.stdout.pipe(writeStream);
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(chunk);
+    });
+
+    child.on("error", fail);
+    writeStream.on("error", fail);
+
+    child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      writeStream.end(() => {
+        resolve({
+          success: code === 0,
+          stderr: Buffer.concat(stderrChunks).toString("utf-8").trim(),
+          bytesWritten,
+        });
+      });
+    });
+  });
+}
+
+/** Like execToFile, but a failure to even start `kubectl` (e.g. not on PATH) is
+ *  reported with the same "kubectl exec failed:" prefix used elsewhere. */
+async function runExecToFile(execArgs: string[], destPath: string): Promise<ExecToFileResult> {
+  try {
+    return await execToFile(execArgs, destPath, DOWNLOAD_TIMEOUT_MS);
+  } catch (err) {
+    throw new Error(`kubectl exec failed: ${(err as Error).message}`, { cause: err });
+  }
+}
+
+/**
+ * True when a kubectl exec stderr indicates the container's runtime could not
+ * start `executableName` at all (no such binary on PATH), as opposed to the
+ * command starting and failing on its own (missing file, permission denied).
+ * OCI runtimes report the former as `exec: "<name>": executable file not found`.
+ */
+function isExecutableNotFoundError(stderr: string, executableName: string): boolean {
+  const quoted = `"${executableName}"`;
+  return stderr.includes(quoted) && /executable file not found/i.test(stderr);
+}
 
 /** Returns args up to (but not including) the `--` separator for kubectl exec. */
 function buildBaseExecArgs(

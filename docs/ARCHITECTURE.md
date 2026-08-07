@@ -271,6 +271,18 @@ Error messages are sanitized before being displayed to prevent information leaka
 - **React Testing Library**: Component testing
 - **MSW**: API mocking (planned)
 
+### Testing `electron/kubernetes.ts`
+
+`vite-plugin-electron-renderer` (needed so the renderer bundle can polyfill
+Node built-ins) rewrites bare specifiers like `"fs"`, `"os"`, `"child_process"`
+into browser shims — importing `electron/kubernetes.ts` in a test breaks
+unless every Node built-in it imports is mocked with `vi.mock(...)` first, so
+the real module (and its shim) is never resolved. Vite/Vitest treat a bare
+specifier and its `"node:"`-prefixed form (`"fs"` vs `"node:fs"`) as the same
+underlying module, so if both are mocked in the same test file, they must
+share the same mock object — otherwise whichever `vi.mock` call wins silently
+shadows the other. See `electron/kubernetes.test.ts` for the pattern.
+
 ## Build & Deployment
 
 ### Build Process

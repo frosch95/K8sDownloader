@@ -40,7 +40,7 @@
 | 3 | **Pod Browser** | List pods with status badges (Running / Pending / Failed) and search filter |
 | 4 | **File Explorer** | Browse the filesystem of any pod container with a directory table |
 | 5 | **Filesystem Navigation** | Breadcrumb bar, double-click directories, back-button — familiar explorer UX |
-| 6 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) — binary-safe |
+| 6 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) — binary-safe, streamed directly to disk with no file size cap |
 | 7 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
 | 8 | **Cross-Platform Pods** | File listing and download work on both Linux and Windows containers — automatic fallback |
 | 9 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
