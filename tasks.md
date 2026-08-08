@@ -1,6 +1,7 @@
 # Tasks
 
 ## Backlog
+- [x] remove es-lint and linting from project as it is not supported in typescript 7
 
 ## In Progress
 

@@ -104,9 +104,6 @@ pnpm electron:dev
 
 # Run tests
 pnpm test
-
-# Lint
-pnpm lint
 ```
 
 ## Build & Release
