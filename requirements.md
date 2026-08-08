@@ -20,10 +20,8 @@
 * Use vertical slices
 * Use clean code patterns
 * Use best practices for electron apps
-* Use linting for the project
 * Do documentation of architecture and features in README.md and describe how to build, run and release the app on windows, linux and macos. Update the README.md if anything changes depending to the achitecture or features to have up-to-date documentation.
 
 ## Definition of Done
 * Project must build without errors
 * Tests must complete without errors
-* No linting errors
