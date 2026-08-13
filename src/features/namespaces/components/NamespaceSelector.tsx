@@ -1,6 +1,7 @@
 import type { NamespaceInfo } from "../../../shared/types/kubernetes";
 import { memo } from "react";
 import { CustomSelect } from "../../ui/components/CustomSelect";
+import { RefreshButton } from "../../ui/components/RefreshButton";
 
 interface NamespaceSelectorProps {
   namespaces: NamespaceInfo[];
@@ -8,6 +9,7 @@ interface NamespaceSelectorProps {
   loading: boolean;
   disabled: boolean;
   onSelect: (name: string) => void;
+  onRefresh: () => void;
 }
 
 export const NamespaceSelector = memo(function NamespaceSelector({
@@ -16,6 +18,7 @@ export const NamespaceSelector = memo(function NamespaceSelector({
   loading,
   disabled,
   onSelect,
+  onRefresh,
 }: NamespaceSelectorProps) {
   const namespaceOptions = [
     { value: "", label: "Select a namespace…", disabled: false },
@@ -27,13 +30,16 @@ export const NamespaceSelector = memo(function NamespaceSelector({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-        <label className="text-sm font-medium text-k8s-muted uppercase tracking-wider">
-          Namespace
-        </label>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <label className="text-sm font-medium text-k8s-muted uppercase tracking-wider">
+            Namespace
+          </label>
+        </div>
+        <RefreshButton onClick={onRefresh} loading={loading} disabled={disabled} />
       </div>
 
       {loading ? (

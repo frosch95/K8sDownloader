@@ -21,6 +21,7 @@ const defaultProps = {
   containerName: "nginx",
   onNavigate: vi.fn(),
   onBack: vi.fn(),
+  onRefresh: vi.fn(),
   onError: vi.fn(),
 };
 
@@ -149,5 +150,36 @@ describe("FileExplorer", () => {
     const breadcrumbBtn = allSrc.find((el) => el.tagName === "BUTTON")!;
     fireEvent.click(breadcrumbBtn);
     expect(onNavigate).toHaveBeenCalledWith("/src");
+  });
+
+  it("calls onRefresh when the refresh button is clicked", () => {
+    const onRefresh = vi.fn();
+    render(<FileExplorer {...defaultProps} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByTitle("Refresh"));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not navigate or change pod when refreshing", () => {
+    const onNavigate = vi.fn();
+    const onBack = vi.fn();
+    const onRefresh = vi.fn();
+    render(
+      <FileExplorer
+        {...defaultProps}
+        currentPath="/src"
+        onNavigate={onNavigate}
+        onBack={onBack}
+        onRefresh={onRefresh}
+      />
+    );
+    fireEvent.click(screen.getByTitle("Refresh"));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it("disables the refresh button while loading", () => {
+    render(<FileExplorer {...defaultProps} loading={true} />);
+    expect(screen.getByTitle("Refreshing…")).toBeDisabled();
   });
 });

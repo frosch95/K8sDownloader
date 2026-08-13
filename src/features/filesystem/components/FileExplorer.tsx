@@ -3,6 +3,7 @@ import { saveAndDownload } from "../../../utils/api";
 import { getParentPath } from "../../../utils/kubeconfig";
 import type { FileEntry } from "../../../shared/types/kubernetes";
 import { MemoizedFileRow } from "./FileRow";
+import { RefreshButton } from "../../ui/components/RefreshButton";
 
 interface FileExplorerProps {
   files: FileEntry[];
@@ -15,6 +16,7 @@ interface FileExplorerProps {
   containerName: string | null;
   onNavigate: (dirPath: string) => void;
   onBack: (dirPath: string) => void;
+  onRefresh: () => void;
   onError: (message: string) => void;
 }
 
@@ -29,6 +31,7 @@ export const FileExplorer = memo(function FileExplorer({
   containerName,
   onNavigate,
   onBack,
+  onRefresh,
   onError,
 }: FileExplorerProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -98,42 +101,46 @@ export const FileExplorer = memo(function FileExplorer({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Breadcrumb bar */}
-      <div className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-subtle border-b border-k8s-border overflow-x-auto shadow-soft">
-        <button
-          onClick={handleBack}
-          disabled={currentPath === "/"}
-          className="shrink-0 p-1 rounded hover:bg-k8s-surface/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Go up"
-        >
-          <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+      <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-gradient-subtle border-b border-k8s-border shadow-soft">
+        <div className="flex items-center gap-1.5 overflow-x-auto min-w-0">
+          <button
+            onClick={handleBack}
+            disabled={currentPath === "/"}
+            className="shrink-0 p-1 rounded hover:bg-k8s-surface/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Go up"
+          >
+            <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
 
-        <button
-          onClick={() => onNavigate("/")}
-          className="shrink-0 text-sm text-k8s-link hover:text-k8s-link/80 transition-colors"
-        >
-          /
-        </button>
+          <button
+            onClick={() => onNavigate("/")}
+            className="shrink-0 text-sm text-k8s-link hover:text-k8s-link/80 transition-colors"
+          >
+            /
+          </button>
 
-        {breadcrumbs.map((crumb, i) => (
-          <span key={crumb.path} className="flex items-center gap-1.5 text-sm">
-            <span className="text-k8s-muted/50">/</span>
-            {i === breadcrumbs.length - 1 ? (
-              <span className="text-k8s-text font-medium truncate max-w-[200px]">
-                {crumb.label}
-              </span>
-            ) : (
-              <button
-                onClick={() => onNavigate(crumb.path)}
-                className="text-k8s-link hover:text-k8s-link/80 transition-colors truncate max-w-[200px]"
-              >
-                {crumb.label}
-              </button>
-            )}
-          </span>
-        ))}
+          {breadcrumbs.map((crumb, i) => (
+            <span key={crumb.path} className="flex items-center gap-1.5 text-sm">
+              <span className="text-k8s-muted/50">/</span>
+              {i === breadcrumbs.length - 1 ? (
+                <span className="text-k8s-text font-medium truncate max-w-[200px]">
+                  {crumb.label}
+                </span>
+              ) : (
+                <button
+                  onClick={() => onNavigate(crumb.path)}
+                  className="text-k8s-link hover:text-k8s-link/80 transition-colors truncate max-w-[200px]"
+                >
+                  {crumb.label}
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+
+        <RefreshButton onClick={onRefresh} loading={loading} />
       </div>
 
       {/* File list */}

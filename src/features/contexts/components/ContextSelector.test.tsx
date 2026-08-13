@@ -89,7 +89,7 @@ describe("ContextSelector", () => {
         onRefresh={onRefresh}
       />
     );
-    fireEvent.click(screen.getByText("Refresh"));
+    fireEvent.click(screen.getByTitle("Refresh"));
     expect(onRefresh).toHaveBeenCalledOnce();
   });
 
@@ -104,7 +104,7 @@ describe("ContextSelector", () => {
         onRefresh={onRefresh}
       />
     );
-    const btn = screen.getByText("Loading…");
+    const btn = screen.getByTitle("Refreshing…");
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(onRefresh).not.toHaveBeenCalled();

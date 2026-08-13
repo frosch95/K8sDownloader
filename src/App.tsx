@@ -32,9 +32,9 @@ function App() {
   const { globalError, clearGlobalError } = useKubeStore();
 
   // Extract stable callbacks
-  const { load: nsLoad, setError: nsSetError } = ns;
-  const { load: podsLoad, setSelected: podsSetSelected, setError: podsSetError } = pods;
-  const { navigateTo: fsNavigateTo, setError: fsSetError, reset: fsReset } = fs;
+  const { setError: nsSetError } = ns;
+  const { setSelected: podsSetSelected, setError: podsSetError } = pods;
+  const { navigateTo: fsNavigateTo, refresh: fsRefresh, setError: fsSetError, reset: fsReset } = fs;
   const { setError: ctxSetError } = ctx;
 
   // ── Resizable sidebar ──────────────────────────────────────────────────
@@ -61,18 +61,10 @@ function App() {
   }, []);
 
   // ── Data loading ───────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (ctx.selected) {
-      nsLoad(ctx.selected);
-    }
-  }, [ctx.selected, nsLoad]);
-
-  useEffect(() => {
-    if (ctx.selected && ns.selected) {
-      podsLoad(ctx.selected, ns.selected);
-    }
-  }, [ctx.selected, ns.selected, podsLoad]);
+  // Namespace/pod loading is triggered by the store itself (selectContext →
+  // loadNamespaces, selectNamespace → loadPods, and the startup restoration
+  // chain in loadContexts/loadNamespaces), so no effects are needed here —
+  // adding them would just cause duplicate loads.
 
   const handlePodSelect = useCallback(
     (pod: PodInfo) => {
@@ -173,6 +165,7 @@ function App() {
                 loading={ns.loading}
                 disabled={!ctx.selected}
                 onSelect={ns.setSelected}
+                onRefresh={ns.reload}
               />
             </ErrorBoundary>
             <ErrorBoundary>
@@ -182,6 +175,7 @@ function App() {
                 loading={pods.loading}
                 disabled={!ns.selected}
                 onSelect={handlePodSelect}
+                onRefresh={pods.reload}
               />
             </ErrorBoundary>
           </div>
@@ -221,6 +215,7 @@ function App() {
               containerName={pods.selected?.containers?.[0] ?? null}
               onNavigate={handleNavigate}
               onBack={handleBack}
+              onRefresh={fsRefresh}
               onError={(message) => useKubeStore.getState().setGlobalError(new AppError(ErrorCode.UNKNOWN_ERROR, message))}
             />
           </ErrorBoundary>

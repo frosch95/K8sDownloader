@@ -1,6 +1,7 @@
 import { useState, memo, useEffect } from "react";
 import type { PodInfo } from "../../../shared/types/kubernetes";
 import { filterPods } from "../../../utils/kubeconfig";
+import { RefreshButton } from "../../ui/components/RefreshButton";
 
 interface PodSelectorProps {
   pods: PodInfo[];
@@ -8,6 +9,7 @@ interface PodSelectorProps {
   loading: boolean;
   disabled: boolean;
   onSelect: (pod: PodInfo) => void;
+  onRefresh: () => void;
   className?: string;
 }
 
@@ -17,6 +19,7 @@ export const PodSelector = memo(function PodSelector({
   loading,
   disabled,
   onSelect,
+  onRefresh,
   className = "",
 }: PodSelectorProps) {
   const [search, setSearch] = useState("");
@@ -35,9 +38,12 @@ export const PodSelector = memo(function PodSelector({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <label className="text-sm font-medium text-k8s-muted uppercase tracking-wider">
-        Pod
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-k8s-muted uppercase tracking-wider">
+          Pod
+        </label>
+        <RefreshButton onClick={onRefresh} loading={loading} disabled={disabled} />
+      </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-k8s-muted py-2">

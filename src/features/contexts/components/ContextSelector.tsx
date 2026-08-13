@@ -1,6 +1,7 @@
 import type { ContextInfo } from "../../../shared/types/kubernetes";
 import { memo } from "react";
 import { CustomSelect } from "../../ui/components/CustomSelect";
+import { RefreshButton } from "../../ui/components/RefreshButton";
 
 interface ContextSelectorProps {
   contexts: ContextInfo[];
@@ -37,13 +38,7 @@ export const ContextSelector = memo(function ContextSelector({
             Context
           </label>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={loading}
-          className="text-xs text-k8s-link hover:text-k8s-link/80 disabled:opacity-50 transition-all hover:underline"
-        >
-          {loading ? "Loading…" : "Refresh"}
-        </button>
+        <RefreshButton onClick={onRefresh} loading={loading} />
       </div>
 
       {loading ? (

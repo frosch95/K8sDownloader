@@ -19,6 +19,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByText("Pod")).toBeInTheDocument();
@@ -32,6 +33,7 @@ describe("PodSelector", () => {
         loading={true}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByText("Loading pods…")).toBeInTheDocument();
@@ -45,6 +47,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByPlaceholderText("Filter pods…")).toBeInTheDocument();
@@ -58,6 +61,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByText("nginx-deployment-abc")).toBeInTheDocument();
@@ -74,6 +78,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     fireEvent.change(screen.getByPlaceholderText("Filter pods…"), {
@@ -94,6 +99,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     fireEvent.change(screen.getByPlaceholderText("Filter pods…"), {
@@ -113,6 +119,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={true}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByText("Select a namespace first")).toBeInTheDocument();
@@ -127,6 +134,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={onSelect}
+        onRefresh={vi.fn()}
       />
     );
     fireEvent.click(screen.getByText("nginx-deployment-abc"));
@@ -141,6 +149,7 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     // Multiple pods can have "Running" status
@@ -157,9 +166,40 @@ describe("PodSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     const button = screen.getByText("nginx-deployment-abc").closest("button");
     expect(button?.className).toContain("bg-gradient-accent/10");
+  });
+
+  it("calls onRefresh when the refresh button is clicked", () => {
+    const onRefresh = vi.fn();
+    render(
+      <PodSelector
+        pods={samplePods}
+        selected={null}
+        loading={false}
+        disabled={false}
+        onSelect={vi.fn()}
+        onRefresh={onRefresh}
+      />
+    );
+    fireEvent.click(screen.getByTitle("Refresh"));
+    expect(onRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("disables the refresh button when the selector is disabled", () => {
+    render(
+      <PodSelector
+        pods={samplePods}
+        selected={null}
+        loading={false}
+        disabled={true}
+        onSelect={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+    expect(screen.getByTitle("Refresh")).toBeDisabled();
   });
 });

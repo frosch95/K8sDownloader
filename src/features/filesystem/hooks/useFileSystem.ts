@@ -17,6 +17,7 @@ export function useFileSystem() {
     navigateTo,
     navigateBack,
     navigateForward,
+    refreshFiles,
     resetFileSystem,
     clearFilesError,
   } = useKubeStore();
@@ -29,6 +30,7 @@ export function useFileSystem() {
     navigateTo,
     navigateBack,
     navigateForward,
+    refresh: refreshFiles,
     reset: resetFileSystem,
     setError: clearFilesError,
   };

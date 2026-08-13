@@ -61,6 +61,7 @@ interface KubeState {
   
   navigateBack: () => void;
   navigateForward: () => void;
+  refreshFiles: () => Promise<void>;
   clearFilesError: () => void;
   
   resetFileSystem: () => void;
@@ -351,6 +352,36 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     }
   },
   
+  refreshFiles: async () => {
+    const { selectedContext, selectedNamespace, selectedPod, currentPath } = get();
+    if (!selectedContext || !selectedNamespace || !selectedPod) {
+      return;
+    }
+
+    const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
+
+    set({ filesLoading: true, filesError: null });
+    try {
+      const files = await KubernetesService.listFiles(
+        selectedContext,
+        selectedNamespace,
+        selectedPod.name,
+        container,
+        currentPath
+      );
+      // Reload the current directory only — navigation history/future is untouched
+      set({ files });
+    } catch (error) {
+      const appError = AppError.fromError(error);
+      set({
+        filesError: appError,
+        globalError: appError
+      });
+    } finally {
+      set({ filesLoading: false });
+    }
+  },
+
   clearFilesError: () => set({ filesError: null, globalError: null }),
   
   resetFileSystem: () => {

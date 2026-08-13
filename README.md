@@ -35,18 +35,19 @@
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig |
-| 2 | **Namespace Browser** | View and select namespaces available in the cluster |
-| 3 | **Pod Browser** | List pods with status badges (Running / Pending / Failed) and search filter |
+| 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig — icon refresh button reloads the context list |
+| 2 | **Namespace Browser** | View and select namespaces available in the cluster — icon refresh button reloads the namespace list for the current context |
+| 3 | **Pod Browser** | List pods with status badges (Running / Pending / Failed) and search filter — icon refresh button reloads the pod list for the current namespace |
 | 4 | **File Explorer** | Browse the filesystem of any pod container with a directory table |
 | 5 | **Filesystem Navigation** | Breadcrumb bar, double-click directories, back-button — familiar explorer UX |
-| 6 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) — binary-safe, streamed directly to disk with no file size cap |
-| 7 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
-| 8 | **Cross-Platform Pods** | File listing and download work on both Linux and Windows containers — automatic fallback |
-| 9 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
-| 10 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
-| 11 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
-| 12 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
+| 6 | **Directory Refresh** | Refresh button in the file explorer reloads the current directory listing without changing the selected pod or navigating away |
+| 7 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) — binary-safe, streamed directly to disk with no file size cap |
+| 8 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
+| 9 | **Cross-Platform Pods** | File listing and download work on both Linux and Windows containers — automatic fallback |
+| 10 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
+| 11 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
+| 12 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
+| 13 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
 
 ## Architecture Highlights
 

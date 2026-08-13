@@ -18,6 +18,7 @@ describe("NamespaceSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByText("Namespace")).toBeInTheDocument();
@@ -31,6 +32,7 @@ describe("NamespaceSelector", () => {
         loading={true}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     expect(screen.getByText("Loading namespaces…")).toBeInTheDocument();
@@ -44,13 +46,14 @@ describe("NamespaceSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
-    
+
     // Open dropdown to check options
     const button = screen.getByRole("button", { name: "Select a namespace…" });
     fireEvent.click(button);
-    
+
     expect(screen.getByText("default")).toBeInTheDocument();
     expect(screen.getByText("kube-system")).toBeInTheDocument();
     expect(screen.getByText("production")).toBeInTheDocument();
@@ -65,13 +68,14 @@ describe("NamespaceSelector", () => {
         loading={false}
         disabled={false}
         onSelect={onSelect}
+        onRefresh={vi.fn()}
       />
     );
-    
+
     // Open dropdown
     const button = screen.getByRole("button", { name: "Select a namespace…" });
     fireEvent.click(button);
-    
+
     // Click on an option
     fireEvent.click(screen.getByText("default"));
     expect(onSelect).toHaveBeenCalledWith("default");
@@ -85,6 +89,7 @@ describe("NamespaceSelector", () => {
         loading={false}
         disabled={true}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     const button = screen.getByRole("button", { name: "Select a namespace…" });
@@ -99,9 +104,54 @@ describe("NamespaceSelector", () => {
         loading={false}
         disabled={false}
         onSelect={vi.fn()}
+        onRefresh={vi.fn()}
       />
     );
     const button = screen.getByRole("button", { name: "Select a namespace…" });
     expect(button).toBeDisabled();
+  });
+
+  it("calls onRefresh when the refresh button is clicked", () => {
+    const onRefresh = vi.fn();
+    render(
+      <NamespaceSelector
+        namespaces={sampleNamespaces}
+        selected=""
+        loading={false}
+        disabled={false}
+        onSelect={vi.fn()}
+        onRefresh={onRefresh}
+      />
+    );
+    fireEvent.click(screen.getByTitle("Refresh"));
+    expect(onRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("disables the refresh button when the selector is disabled", () => {
+    render(
+      <NamespaceSelector
+        namespaces={sampleNamespaces}
+        selected=""
+        loading={false}
+        disabled={true}
+        onSelect={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+    expect(screen.getByTitle("Refresh")).toBeDisabled();
+  });
+
+  it("disables the refresh button while loading", () => {
+    render(
+      <NamespaceSelector
+        namespaces={sampleNamespaces}
+        selected=""
+        loading={true}
+        disabled={false}
+        onSelect={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+    expect(screen.getByTitle("Refreshing…")).toBeDisabled();
   });
 });
