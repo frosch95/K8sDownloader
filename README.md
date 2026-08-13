@@ -41,9 +41,9 @@
 | 4 | **File Explorer** | Browse the filesystem of any pod container with a directory table |
 | 5 | **Filesystem Navigation** | Breadcrumb bar, double-click directories, back-button — familiar explorer UX |
 | 6 | **Directory Refresh** | Refresh button in the file explorer reloads the current directory listing without changing the selected pod or navigating away |
-| 7 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) — binary-safe, streamed directly to disk with no file size cap |
+| 7 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) / `tar` (minimal Linux images) — binary-safe, streamed directly to disk with no file size cap |
 | 8 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
-| 9 | **Cross-Platform Pods** | File listing and download work on both Linux and Windows containers — automatic fallback |
+| 9 | **Cross-Platform Pods** | File listing and download work on Linux (with fallbacks to `find`/`busybox` for minimal images) and Windows containers — automatic fallback |
 | 10 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
 | 11 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
 | 12 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
@@ -77,7 +77,7 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
 | `get-contexts` | main → renderer | — | `ContextInfo[]` |
 | `get-namespaces` | main → renderer | `contextName` | `NamespaceInfo[]` |
 | `get-pods` | main → renderer | `contextName, namespace` | `PodInfo[]` |
-| `list-files` | main → renderer | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls -la`, Windows: `cmd /c dir` |
+| `list-files` | main → renderer | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls`/`find`/`busybox`, Windows: `cmd /c dir` |
 | `show-save-dialog` | main → renderer | `defaultName` | `string \| null` |
 | `download-file` | main → renderer | `contextName, namespace, podName, containerName?, sourcePath, destPath` | `void` ← Linux: `cat`, Windows: `cmd /c type` |
 
@@ -93,6 +93,10 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
 The application validates user-controlled Kubernetes identifiers and container paths before any kubectl command is executed. This blocks traversal-style paths such as `/var/log/../etc/passwd` and rejects malformed context, namespace, pod, or container names.
 
 The Electron main process keeps sandboxing enabled for the browser window, and renderer code never communicates with kubectl directly. In addition, the renderer uses a safe fallback bridge for Electron API access so the app does not crash when the preload API is unavailable outside a native Electron runtime.
+
+## Known Limitations
+
+- **Distroless / scratch containers** (e.g. CoreDNS) contain no shell utilities at all — no `ls`, `find`, `busybox`, `cat`, or `tar`. Because the app browses files by `kubectl exec`-ing a command, these containers cannot be browsed or downloaded from. The app shows a clear "no supported file listing tool" message instead of a generic error.
 
 ## Quick Start
 

@@ -5,6 +5,9 @@
 ## In Progress
 
 ## Done
+- [x] Add tar-based download fallback (like `kubectl cp`) for minimal Linux containers without cat/cmd
+- [x] List files in minimal Linux containers via additional fallbacks (find, busybox) and document that distroless/scratch images (e.g. CoreDNS) have no tools to exec
+- [x] before trying windows cmd try alternatives to ls, because it may be a linux container without ls
 - [x] As a user i want to have a refresh button on all drop down components
 - [x] As a user i want to have a refresh button instead of a refresh text
 - [x] As a user i want to have a refresh button on the file list to renew the list without changing the pod and navigating to the selected folder again

@@ -167,6 +167,58 @@ export function parseLsOutput(output: string, basePath: string): FileEntry[] {
   return sortFileEntries(entries);
 }
 
+// ── find -printf output parser (Linux containers without ls) ───────────────
+
+/**
+ * Parses the output of `find <dir> -maxdepth 1 -printf '<format>'` (GNU or
+ * busybox find) into FileEntry objects. Used for minimal Linux containers
+ * that ship no `ls` binary but do provide `find`.
+ *
+ * Expected format (see FIND_LIST_FORMAT in electron/kubernetes.ts):
+ *   d|4096|2026-08-13 12:34|/app/subdir
+ *   f|1234|2026-08-13 12:35|/app/file.txt
+ */
+export function parseFindOutput(output: string, basePath: string): FileEntry[] {
+  const entries: FileEntry[] = [];
+  const normalizedBase = normalizeContainerPathForCompare(basePath);
+
+  for (const line of output.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const parts = trimmed.split("|");
+    if (parts.length < 4) continue;
+
+    const type = parts[0];
+    const size = parseInt(parts[1], 10) || 0;
+    const modified = parts[2];
+    // The path itself may contain "|", so rejoin the remainder.
+    const filePath = parts.slice(3).join("|");
+
+    // find lists the start directory itself — skip that entry.
+    if (normalizeContainerPathForCompare(filePath) === normalizedBase) continue;
+
+    const name = filePath.split("/").filter(Boolean).pop() || filePath;
+    if (name === "." || name === "..") continue;
+
+    entries.push({
+      name,
+      path: filePath,
+      isDir: type === "d",
+      size,
+      modified,
+    });
+  }
+
+  return sortFileEntries(entries);
+}
+
+/** Normalizes a container path for equality checks (keeps "/" as the root). */
+function normalizeContainerPathForCompare(inputPath: string): string {
+  const trimmed = inputPath.trim();
+  return trimmed === "/" ? "/" : trimmed.replace(/\/+$/, "");
+}
+
 // ── dir output parser (Windows containers) ─────────────────────────────────
 
 /**

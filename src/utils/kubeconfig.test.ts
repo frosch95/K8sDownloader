@@ -9,6 +9,7 @@ import {
   sortFileEntries,
   getParentPath,
   parseLsOutput,
+  parseFindOutput,
   parseDirOutput,
   sanitizeContainerPath,
   validateKubernetesIdentifier,
@@ -229,6 +230,74 @@ describe("parseLsOutput", () => {
     const entries = parseLsOutput(withDots, "/");
     expect(entries).toHaveLength(1);
     expect(entries[0].name).toBe("real.txt");
+  });
+});
+
+// ── parseFindOutput ────────────────────────────────────────────────────────
+
+describe("parseFindOutput", () => {
+  const sample = [
+    "d|4096|2026-08-13 12:34|/app/subdir",
+    "f|1234|2026-08-13 12:35|/app/file.txt",
+    "l|12|2026-08-13 12:36|/app/link",
+  ].join("\n");
+
+  it("parses directories correctly", () => {
+    const entries = parseFindOutput(sample, "/app");
+    const dir = entries.find((e) => e.name === "subdir");
+    expect(dir).toBeDefined();
+    expect(dir!.isDir).toBe(true);
+    expect(dir!.size).toBe(4096);
+    expect(dir!.modified).toBe("2026-08-13 12:34");
+    expect(dir!.path).toBe("/app/subdir");
+  });
+
+  it("parses files correctly", () => {
+    const entries = parseFindOutput(sample, "/app");
+    const file = entries.find((e) => e.name === "file.txt");
+    expect(file).toBeDefined();
+    expect(file!.isDir).toBe(false);
+    expect(file!.size).toBe(1234);
+    expect(file!.modified).toBe("2026-08-13 12:35");
+  });
+
+  it("treats symlinks as non-directories", () => {
+    const entries = parseFindOutput(sample, "/app");
+    const link = entries.find((e) => e.name === "link");
+    expect(link).toBeDefined();
+    expect(link!.isDir).toBe(false);
+  });
+
+  it("skips the start directory itself", () => {
+    const withStart = [
+      "d|4096|2026-08-13 12:34|/app",
+      "f|1234|2026-08-13 12:35|/app/file.txt",
+    ].join("\n");
+    const entries = parseFindOutput(withStart, "/app");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].name).toBe("file.txt");
+  });
+
+  it("handles names that contain the delimiter", () => {
+    const entries = parseFindOutput(
+      "f|10|2026-08-13 12:00|/app/a|b.txt",
+      "/app"
+    );
+    expect(entries).toHaveLength(1);
+    expect(entries[0].name).toBe("a|b.txt");
+    expect(entries[0].path).toBe("/app/a|b.txt");
+  });
+
+  it("sorts directories before files", () => {
+    const entries = parseFindOutput(
+      [
+        "f|1|2026-08-13 12:00|/app/z.txt",
+        "d|1|2026-08-13 12:00|/app/a-dir",
+      ].join("\n"),
+      "/app"
+    );
+    expect(entries[0].isDir).toBe(true);
+    expect(entries[1].isDir).toBe(false);
   });
 });
 
