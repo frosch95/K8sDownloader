@@ -10,7 +10,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // package.json sicher einlesen und parsen
 const pkg = JSON.parse(
-  readFileSync(resolve(__dirname, 'package.json'), 'utf-8')
+  readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf-8')
 );
 
 export default defineConfig({
@@ -92,13 +92,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@shared": path.resolve(__dirname, "./src/shared"),
-      "@features": path.resolve(__dirname, "./src/features"),
-      "@lib": path.resolve(__dirname, "./src/lib"),
-      "@services": path.resolve(__dirname, "./src/services"),
-      "@stores": path.resolve(__dirname, "./src/stores"),
-      "@types": path.resolve(__dirname, "./src/shared/types"),
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "@shared": path.resolve(import.meta.dirname, "./src/shared"),
+      "@features": path.resolve(import.meta.dirname, "./src/features"),
+      "@lib": path.resolve(import.meta.dirname, "./src/lib"),
+      "@services": path.resolve(import.meta.dirname, "./src/services"),
+      "@stores": path.resolve(import.meta.dirname, "./src/stores"),
+      "@types": path.resolve(import.meta.dirname, "./src/shared/types"),
     },
   },
 
@@ -125,11 +125,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test-setup.ts",
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@shared": path.resolve(__dirname, "./src/shared"),
-      "@features": path.resolve(__dirname, "./src/features"),
-      "@stores": path.resolve(__dirname, "./src/stores"),
-      "@types": path.resolve(__dirname, "./src/shared/types"),
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "@shared": path.resolve(import.meta.dirname, "./src/shared"),
+      "@features": path.resolve(import.meta.dirname, "./src/features"),
+      "@stores": path.resolve(import.meta.dirname, "./src/stores"),
+      "@types": path.resolve(import.meta.dirname, "./src/shared/types"),
     },
   },
 });
