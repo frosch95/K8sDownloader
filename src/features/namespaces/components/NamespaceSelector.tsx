@@ -55,6 +55,8 @@ export const NamespaceSelector = memo(function NamespaceSelector({
           disabled={disabled || namespaces.length === 0}
           className="w-full"
           size="md"
+          filterable
+          filterPlaceholder="Filter namespaces…"
         />
       )}
     </div>

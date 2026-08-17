@@ -83,7 +83,7 @@ export const useKubeStore = create<KubeState>((set, get) => ({
   selectedContext: typeof window !== 'undefined' ? localStorage.getItem('selectedContext') : null,
   contextsLoading: false,
   contextsError: null,
-  
+
   namespaces: [],
   selectedNamespace: typeof window !== 'undefined' ? localStorage.getItem('selectedNamespace') : null,
   namespacesLoading: false,

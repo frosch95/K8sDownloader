@@ -59,6 +59,28 @@ describe("NamespaceSelector", () => {
     expect(screen.getByText("production")).toBeInTheDocument();
   });
 
+  it("filters the namespace list by the typed query", () => {
+    render(
+      <NamespaceSelector
+        namespaces={sampleNamespaces}
+        selected=""
+        loading={false}
+        disabled={false}
+        onSelect={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select a namespace…" }));
+    fireEvent.change(screen.getByPlaceholderText("Filter namespaces…"), {
+      target: { value: "prod" },
+    });
+
+    expect(screen.getByText("production")).toBeInTheDocument();
+    expect(screen.queryByText("default")).not.toBeInTheDocument();
+    expect(screen.queryByText("kube-system")).not.toBeInTheDocument();
+  });
+
   it("calls onSelect when a namespace is chosen", () => {
     const onSelect = vi.fn();
     render(

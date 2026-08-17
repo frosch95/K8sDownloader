@@ -143,4 +143,69 @@ describe('CustomSelect', () => {
     fireEvent.click(button);
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
+
+  it('should not render a filter input by default', () => {
+    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} />);
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('should render a filter input when filterable', () => {
+    render(
+      <CustomSelect
+        value="option1"
+        options={mockOptions}
+        onChange={mockOnChange}
+        filterable
+        filterPlaceholder="Filter options…"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(screen.getByPlaceholderText('Filter options…')).toBeInTheDocument();
+  });
+
+  it('should filter options by the typed query', () => {
+    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
+
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.change(screen.getByPlaceholderText('Filter…'), { target: { value: '2' } });
+
+    expect(screen.getByRole('option', { name: 'Option 2' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Option 1' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Option 3' })).not.toBeInTheDocument();
+  });
+
+  it('should show a "No matches" message when the filter matches nothing', () => {
+    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
+
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.change(screen.getByPlaceholderText('Filter…'), { target: { value: 'nonexistent' } });
+
+    expect(screen.getByText('No matches')).toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  });
+
+  it('should clear the filter query after selecting an option', () => {
+    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
+
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.change(screen.getByPlaceholderText('Filter…'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('option', { name: 'Option 2' }));
+
+    fireEvent.click(screen.getByRole('button'));
+    expect((screen.getByPlaceholderText('Filter…') as HTMLInputElement).value).toBe('');
+  });
+
+  it('should close the dropdown when Escape is pressed in the filter input', () => {
+    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
+
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.keyDown(screen.getByPlaceholderText('Filter…'), { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
 });

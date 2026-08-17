@@ -53,6 +53,8 @@ export const ContextSelector = memo(function ContextSelector({
           onChange={onSelect}
           className="w-full"
           size="md"
+          filterable
+          filterPlaceholder="Filter contexts…"
         />
       )}
     </div>

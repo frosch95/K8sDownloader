@@ -35,8 +35,8 @@
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig — icon refresh button reloads the context list |
-| 2 | **Namespace Browser** | View and select namespaces available in the cluster — icon refresh button reloads the namespace list for the current context |
+| 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig — filterable dropdown with an icon refresh button that reloads the context list |
+| 2 | **Namespace Browser** | View and select namespaces available in the cluster — filterable dropdown with an icon refresh button that reloads the namespace list for the current context |
 | 3 | **Pod Browser** | List pods with status badges (Running / Pending / Failed) and search filter — icon refresh button reloads the pod list for the current namespace |
 | 4 | **Container Selection** | Pods with multiple containers show a container dropdown (hidden for single-container pods); the first container is selected automatically and switching containers reloads the file browser at the container's root |
 | 5 | **File Explorer** | Browse the filesystem of any pod container with a directory table |

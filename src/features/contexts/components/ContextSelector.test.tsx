@@ -57,6 +57,27 @@ describe("ContextSelector", () => {
     expect(screen.getByText("staging (staging-eu)")).toBeInTheDocument();
   });
 
+  it("filters the context list by the typed query", () => {
+    render(
+      <ContextSelector
+        contexts={sampleContexts}
+        selected=""
+        loading={false}
+        onSelect={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select a context…" }));
+    fireEvent.change(screen.getByPlaceholderText("Filter contexts…"), {
+      target: { value: "dev" },
+    });
+
+    expect(screen.getByText("dev-cluster (dev-us)")).toBeInTheDocument();
+    expect(screen.queryByText("prod-cluster (prod-eu)")).not.toBeInTheDocument();
+    expect(screen.queryByText("staging (staging-eu)")).not.toBeInTheDocument();
+  });
+
   it("calls onSelect when a context is chosen", () => {
     const onSelect = vi.fn();
     render(
