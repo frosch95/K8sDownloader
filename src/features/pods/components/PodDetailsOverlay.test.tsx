@@ -120,6 +120,11 @@ describe("PodDetailsOverlay", () => {
     expect(screen.getByText("nginx:1.25")).toBeInTheDocument();
     expect(screen.getByText("Waiting: CrashLoopBackOff")).toBeInTheDocument();
     expect(screen.getByText("3 restarts")).toBeInTheDocument();
+
+    // Status and Ready badges use the theme-aware success color, not the
+    // hardcoded Tailwind green that was unreadable on the light theme.
+    expect(screen.getByText("Running").className).toContain("text-k8s-success");
+    expect(screen.getByText("Ready").className).toContain("text-k8s-success");
   });
 
   it("shows a collapsed 'Mounts' element for containers with mounts, and none for containers without", () => {

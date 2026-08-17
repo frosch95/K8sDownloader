@@ -46,7 +46,7 @@
 | 9 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
 | 10 | **Cross-Platform Pods** | File listing and download work on Linux (with fallbacks to `find`/`busybox` for minimal images) and Windows containers — automatic fallback |
 | 11 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
-| 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
+| 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage. Status text colors (e.g. "Running") are theme-aware so they stay readable in every theme, not just dark ones |
 | 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
 | 14 | **Pod Details Overlay** | An info button in the file explorer opens a resizable overlay (drag the bottom-right corner) with the selected pod's status, node, IP, creation time, controller, and per-container image/ready/restart-count details (press Esc to dismiss) |
 | 15 | **Volume Mount Info** | Each container in the pod details overlay has a collapsible "Mounts" section listing its mount paths and classifying their source (ConfigMap / Secret / PersistentVolumeClaim / HostPath / NFS / CSI are highlighted as coming from "outside" the container image, vs. ephemeral EmptyDir/Projected/DownwardAPI volumes) |

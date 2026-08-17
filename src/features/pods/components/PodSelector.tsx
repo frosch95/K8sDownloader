@@ -94,7 +94,7 @@ export const PodSelector = memo(function PodSelector({
                   <span
                     className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
                       pod.status === "Running"
-                        ? "bg-green-500/15 text-green-400"
+                        ? "bg-k8s-success/15 text-k8s-success"
                         : pod.status === "Pending"
                           ? "bg-yellow-500/15 text-yellow-400"
                           : "bg-red-500/15 text-red-400"
