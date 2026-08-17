@@ -15,6 +15,19 @@ export function getFileIcon(isDir: boolean): string {
   return isDir ? "📁" : "📄";
 }
 
+/** Builds the suggested log file name: "<podName>-YYYY-MM-DD-HH-mm.log". */
+export function formatLogFileName(podName: string, date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const timestamp = [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+  ].join("-");
+  return `${podName}-${timestamp}.log`;
+}
+
 /** Safely extracts an error message from any thrown value. */
 export function extractErrorMessage(error: unknown): string {
   if (typeof error === "string") return error;

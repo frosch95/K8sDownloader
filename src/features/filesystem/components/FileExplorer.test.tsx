@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { FileExplorer } from "./FileExplorer";
 import type { FileEntry } from "../../../shared/types/kubernetes";
+import * as apiModule from "../../../utils/api";
+
+vi.mock("../../../utils/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../utils/api")>();
+  return {
+    ...actual,
+    saveAndDownloadPodLogs: vi.fn(),
+  };
+});
 
 const sampleFiles: FileEntry[] = [
   { name: "src", path: "/src", isDir: true, size: 0, modified: "Jun 1 12:00" },
@@ -189,5 +198,36 @@ describe("FileExplorer", () => {
     render(<FileExplorer {...defaultProps} onShowPodInfo={onShowPodInfo} />);
     fireEvent.click(screen.getByTitle("Pod details"));
     expect(onShowPodInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it("downloads pod logs with a pod-name-and-timestamp suggested filename", async () => {
+    const spy = vi.mocked(apiModule.saveAndDownloadPodLogs);
+    spy.mockReset();
+    spy.mockResolvedValue(undefined);
+
+    render(<FileExplorer {...defaultProps} />);
+    fireEvent.click(screen.getByTitle("Download pod logs"));
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    expect(spy).toHaveBeenCalledWith(
+      "prod-cluster",
+      "default",
+      "nginx-abc",
+      "nginx",
+      expect.stringMatching(/^nginx-abc-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.log$/)
+    );
+  });
+
+  it("shows an error message when the log download fails", async () => {
+    const spy = vi.mocked(apiModule.saveAndDownloadPodLogs);
+    spy.mockReset();
+    spy.mockRejectedValue(new Error("kubectl logs failed: boom"));
+    const onError = vi.fn();
+
+    render(<FileExplorer {...defaultProps} onError={onError} />);
+    fireEvent.click(screen.getByTitle("Download pod logs"));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toContain("kubectl logs failed: boom");
   });
 });

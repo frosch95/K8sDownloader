@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [x] as a user i want to have a button to download the pod log and save it as file. The suggested name of the logfile should be the pods name plus the date and time in the format (year-month-day-houre-minute) and the file ending ".log"
 - [x] As a user i want to see more information about the selected pod. Introduce a overlay window that can be triggered by a information button and that shows the main information about the selected pod.
 - [x] As a user i want to select the container as well if there are multiple containers in a pod.
 - [x] Add tar-based download fallback (like `kubectl cp`) for minimal Linux containers without cat/cmd

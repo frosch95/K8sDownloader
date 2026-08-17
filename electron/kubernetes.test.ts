@@ -55,7 +55,7 @@ vi.mock("path", () => ({
   },
 }));
 
-const { downloadFile, listFiles, getPodDetails } = await import("./kubernetes");
+const { downloadFile, downloadPodLogs, listFiles, getPodDetails } = await import("./kubernetes");
 
 describe("resolveKubectlCommand", () => {
   beforeEach(() => {
@@ -597,5 +597,65 @@ describe("getPodDetails", () => {
   it("rejects a malformed pod name before invoking kubectl", () => {
     expect(() => getPodDetails(CONTEXT, NAMESPACE, "bad pod name")).toThrow();
     expect(spawnSyncMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── downloadPodLogs ──────────────────────────────────────────────────────────
+
+const LOGS_DEST = "D:\\downloads\\pod.log";
+
+describe("downloadPodLogs", () => {
+  beforeEach(() => {
+    spawnMock.mockReset();
+    createWriteStreamMock.mockReset();
+  });
+
+  it("streams kubectl logs output straight to the destination file", async () => {
+    const { children, writeStreams } = queueSpawnAttempts(1);
+
+    const promise = downloadPodLogs(CONTEXT, NAMESPACE, POD, CONTAINER, LOGS_DEST);
+    children[0].stdout.emit("data", Buffer.from("log line 1\nlog line 2\n"));
+    children[0].emit("close", 0);
+
+    await expect(promise).resolves.toBeUndefined();
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(spawnMock).toHaveBeenCalledWith(
+      expect.any(String),
+      ["--context", CONTEXT, "logs", "-n", NAMESPACE, POD, "-c", CONTAINER],
+      expect.any(Object)
+    );
+    expect(createWriteStreamMock).toHaveBeenCalledWith(LOGS_DEST);
+    expect(writeStreams[0].end).toHaveBeenCalled();
+  });
+
+  it("omits the -c flag when no container is specified", async () => {
+    const { children } = queueSpawnAttempts(1);
+
+    const promise = downloadPodLogs(CONTEXT, NAMESPACE, POD, null, LOGS_DEST);
+    children[0].emit("close", 0);
+    await promise;
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      expect.any(String),
+      ["--context", CONTEXT, "logs", "-n", NAMESPACE, POD],
+      expect.any(Object)
+    );
+  });
+
+  it("throws a helpful error when kubectl logs exits non-zero", async () => {
+    const { children } = queueSpawnAttempts(1);
+
+    const promise = downloadPodLogs(CONTEXT, NAMESPACE, POD, CONTAINER, LOGS_DEST);
+    children[0].stderr.emit("data", Buffer.from('Error from server (NotFound): pods "x" not found'));
+    children[0].emit("close", 1);
+
+    await expect(promise).rejects.toThrow(/kubectl logs failed:.*NotFound/);
+  });
+
+  it("rejects a malformed pod name before invoking kubectl", async () => {
+    await expect(
+      downloadPodLogs(CONTEXT, NAMESPACE, "bad pod name", CONTAINER, LOGS_DEST)
+    ).rejects.toThrow();
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 });

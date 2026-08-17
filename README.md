@@ -49,7 +49,8 @@
 | 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
 | 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
 | 14 | **Pod Details Overlay** | An info button in the file explorer opens an overlay with the selected pod's status, node, IP, creation time, controller, and per-container image/ready/restart-count details (press Esc to dismiss) |
-| 15 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
+| 15 | **Pod Log Download** | A button in the file explorer downloads the selected pod/container's logs via `kubectl logs` through the native save dialog, suggesting `<pod-name>-YYYY-MM-DD-HH-mm.log` as the file name |
+| 16 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
 
 ## Architecture Highlights
 
@@ -83,6 +84,7 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
 | `list-files` | main → renderer | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls`/`find`/`busybox`, Windows: `cmd /c dir` |
 | `show-save-dialog` | main → renderer | `defaultName` | `string \| null` |
 | `download-file` | main → renderer | `contextName, namespace, podName, containerName?, sourcePath, destPath` | `void` ← Linux: `cat`, Windows: `cmd /c type` |
+| `download-pod-logs` | main → renderer | `contextName, namespace, podName, containerName?, destPath` | `void` ← `kubectl logs` |
 
 ## Prerequisites
 
@@ -223,6 +225,7 @@ const pods = await KubernetesService.getPods(contextName, namespace);
 const podDetails = await KubernetesService.getPodDetails(contextName, namespace, podName);
 const files = await KubernetesService.listFiles(contextName, namespace, podName, containerName, dirPath);
 await KubernetesService.downloadFile(contextName, namespace, podName, containerName, sourcePath, defaultFileName);
+await KubernetesService.downloadPodLogs(contextName, namespace, podName, containerName, defaultFileName);
 ```
 
 ## Error Handling

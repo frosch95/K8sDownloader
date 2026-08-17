@@ -38,6 +38,13 @@ export interface ElectronApiBridge {
     sourcePath: string,
     destPath: string
   ) => Promise<void>;
+  downloadPodLogs: (
+    contextName: string,
+    namespace: string,
+    podName: string,
+    containerName: string | null,
+    destPath: string
+  ) => Promise<void>;
   getThirdPartyLicenses: () => Promise<{ success: true; content: string } | { success: false; error: string }>;
   openThirdPartyLicenses: () => Promise<{ success: true } | { success: false; error: string }>;
 }

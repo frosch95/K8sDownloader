@@ -29,6 +29,7 @@ export function getElectronApi(): ElectronApiBridge {
       listFiles: async () => [],
       showSaveDialog: async () => null,
       downloadFile: async () => undefined,
+      downloadPodLogs: async () => undefined,
       getThirdPartyLicenses: async () => ({ success: false as const, error: "Not available outside Electron." }),
       openThirdPartyLicenses: async () => ({ success: false as const, error: "Not available outside Electron." }),
     };
@@ -215,6 +216,46 @@ export class KubernetesService {
         safeSourcePath,
         destPath
       );
+    } catch (error) {
+      throw AppError.fromError(error);
+    }
+  }
+
+  /**
+   * Downloads a pod's logs via `kubectl logs`
+   *
+   * @param {string} contextName - The name of the Kubernetes context
+   * @param {string} namespace - The namespace containing the pod
+   * @param {string} podName - The name of the pod
+   * @param {string | null} containerName - The name of the container (null for the pod's only/default container)
+   * @param {string} defaultFileName - The default filename for the save dialog
+   * @returns {Promise<void>}
+   * @throws {AppError} If any required parameter is missing or the download fails
+   */
+  static async downloadPodLogs(
+    contextName: string,
+    namespace: string,
+    podName: string,
+    containerName: string | null,
+    defaultFileName: string
+  ): Promise<void> {
+    try {
+      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
+        allowUppercase: true,
+      });
+      const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
+      const safePodName = validateKubernetesIdentifier(podName, 'Pod name');
+      const safeContainerName = containerName
+        ? validateKubernetesIdentifier(containerName, 'Container name')
+        : null;
+
+      const destPath = await this.api.showSaveDialog(defaultFileName);
+      if (!destPath) {
+        // User cancelled the save dialog
+        return;
+      }
+
+      await this.api.downloadPodLogs(safeContextName, safeNamespace, safePodName, safeContainerName, destPath);
     } catch (error) {
       throw AppError.fromError(error);
     }
