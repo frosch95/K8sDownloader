@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [x] allow to filter the cluster list and the namespace list as well
 - [x] The green in the status is hard to read on a light theme. Use a darker green in the light theme.
 - [x] as a user i want to have thw mount information in a foldable element with the name Mounts.
 - [x] As a user i want to have the pod details overlay resizable. 
