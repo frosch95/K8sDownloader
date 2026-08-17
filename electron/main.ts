@@ -9,6 +9,7 @@ import {
   getPodDetails,
   listFiles,
   downloadFile,
+  downloadPodLogs,
 } from "./kubernetes";
 import { initLogger, patchConsole, closeLogger } from "./logger";
 
@@ -158,6 +159,20 @@ function registerIpcHandlers(): void {
         sourcePath,
         destPath
       );
+    }
+  );
+
+  ipcMain.handle(
+    "download-pod-logs",
+    async (
+      _event,
+      contextName: string,
+      namespace: string,
+      podName: string,
+      containerName: string | null,
+      destPath: string
+    ) => {
+      return downloadPodLogs(contextName, namespace, podName, containerName, destPath);
     }
   );
 }

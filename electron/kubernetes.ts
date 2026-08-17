@@ -479,6 +479,48 @@ export async function downloadFile(
   log(`downloadFile: written ${tarAttempt.bytesWritten} bytes via tar`);
 }
 
+// ── Pod log download via kubectl logs ──────────────────────────────────────
+//
+// Unlike downloadFile, this is a single kubectl invocation (no exec, no
+// per-runtime fallback chain) since `kubectl logs` works the same way
+// regardless of what tools the container image ships.
+
+const LOGS_TIMEOUT_MS = 5 * 60 * 1000;
+
+export async function downloadPodLogs(
+  contextName: string,
+  namespace: string,
+  podName: string,
+  containerName: string | null,
+  destPath: string
+): Promise<void> {
+  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
+    allowUppercase: true,
+  });
+  const safeNamespace = validateKubernetesIdentifier(namespace, "Namespace");
+  const safePodName = validateKubernetesIdentifier(podName, "Pod name");
+  const safeContainerName = containerName
+    ? validateKubernetesIdentifier(containerName, "Container name")
+    : null;
+
+  log(
+    `downloadPodLogs: context="${safeContextName}" ns="${safeNamespace}" ` +
+    `pod="${safePodName}" container="${safeContainerName || "(default)"}" dest="${destPath}"`
+  );
+
+  const args = ["--context", safeContextName, "logs", "-n", safeNamespace, safePodName];
+  if (safeContainerName) {
+    args.push("-c", safeContainerName);
+  }
+
+  const result = await runLogsToFile(args, destPath);
+  if (!result.success) {
+    throw new Error(`kubectl logs failed: ${result.stderr || "unknown error"}`);
+  }
+
+  log(`downloadPodLogs: written ${result.bytesWritten} bytes`);
+}
+
 // ── Internal helpers ───────────────────────────────────────────────────────
 
 interface ExecToFileResult {
@@ -551,6 +593,16 @@ async function runExecToFile(execArgs: string[], destPath: string): Promise<Exec
     return await execToFile(execArgs, destPath, DOWNLOAD_TIMEOUT_MS);
   } catch (err) {
     throw new Error(`kubectl exec failed: ${(err as Error).message}`, { cause: err });
+  }
+}
+
+/** Like execToFile, but a failure to even start `kubectl` is reported with
+ *  the "kubectl logs failed:" prefix used by downloadPodLogs. */
+async function runLogsToFile(execArgs: string[], destPath: string): Promise<ExecToFileResult> {
+  try {
+    return await execToFile(execArgs, destPath, LOGS_TIMEOUT_MS);
+  } catch (err) {
+    throw new Error(`kubectl logs failed: ${(err as Error).message}`, { cause: err });
   }
 }
 

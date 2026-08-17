@@ -55,6 +55,22 @@ const electronAPI = {
       destPath
     ),
 
+  downloadPodLogs: (
+    contextName: string,
+    namespace: string,
+    podName: string,
+    containerName: string | null,
+    destPath: string
+  ): Promise<void> =>
+    ipcRenderer.invoke(
+      "download-pod-logs",
+      contextName,
+      namespace,
+      podName,
+      containerName,
+      destPath
+    ),
+
   getThirdPartyLicenses: (): Promise<{ success: true; content: string } | { success: false; error: string }> =>
     ipcRenderer.invoke("get-third-party-licenses"),
 

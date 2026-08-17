@@ -110,3 +110,30 @@ export async function saveAndDownload(
     defaultFileName
   );
 }
+
+/**
+ * Downloads a pod's logs via a native save dialog
+ *
+ * @deprecated Use KubernetesService.downloadPodLogs() instead
+ * @param {string} contextName - The name of the Kubernetes context
+ * @param {string} namespace - The namespace containing the pod
+ * @param {string} podName - The name of the pod
+ * @param {string | null} containerName - The name of the container
+ * @param {string} defaultFileName - The default filename for the save dialog
+ * @returns {Promise<void>}
+ */
+export async function saveAndDownloadPodLogs(
+  contextName: string,
+  namespace: string,
+  podName: string,
+  containerName: string | null,
+  defaultFileName: string
+): Promise<void> {
+  return KubernetesService.downloadPodLogs(
+    contextName,
+    namespace,
+    podName,
+    containerName,
+    defaultFileName
+  );
+}

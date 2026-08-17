@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   formatFileSize,
   getFileIcon,
+  formatLogFileName,
   extractErrorMessage,
   filterContexts,
   filterNamespaces,
@@ -53,6 +54,25 @@ describe("getFileIcon", () => {
 
   it("returns file icon for files", () => {
     expect(getFileIcon(false)).toBe("📄");
+  });
+});
+
+// ── formatLogFileName ─────────────────────────────────────────────────────
+
+describe("formatLogFileName", () => {
+  it("builds '<podName>-YYYY-MM-DD-HH-mm.log'", () => {
+    const date = new Date(2026, 7, 17, 14, 5); // 2026-08-17 14:05 (local)
+    expect(formatLogFileName("nginx-abc", date)).toBe("nginx-abc-2026-08-17-14-05.log");
+  });
+
+  it("zero-pads single-digit month, day, hour, and minute", () => {
+    const date = new Date(2026, 0, 2, 3, 4); // 2026-01-02 03:04 (local)
+    expect(formatLogFileName("api-server", date)).toBe("api-server-2026-01-02-03-04.log");
+  });
+
+  it("defaults to the current date when none is provided", () => {
+    const result = formatLogFileName("nginx-abc");
+    expect(result).toMatch(/^nginx-abc-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.log$/);
   });
 });
 

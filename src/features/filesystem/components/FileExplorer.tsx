@@ -1,6 +1,6 @@
 import { useCallback, useState, memo } from "react";
-import { saveAndDownload } from "../../../utils/api";
-import { getParentPath } from "../../../utils/kubeconfig";
+import { saveAndDownload, saveAndDownloadPodLogs } from "../../../utils/api";
+import { getParentPath, formatLogFileName } from "../../../utils/kubeconfig";
 import type { FileEntry } from "../../../shared/types/kubernetes";
 import { MemoizedFileRow } from "./FileRow";
 import { RefreshButton } from "../../ui/components/RefreshButton";
@@ -37,6 +37,7 @@ export const FileExplorer = memo(function FileExplorer({
   onError,
 }: FileExplorerProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadingLogs, setDownloadingLogs] = useState(false);
 
   const handleBack = useCallback(() => {
     if (currentPath === "/") return;
@@ -73,6 +74,26 @@ export const FileExplorer = memo(function FileExplorer({
     },
     [contextName, namespace, podName, containerName, onError]
   );
+
+  const handleDownloadLogs = useCallback(async () => {
+    if (!contextName || !namespace || !podName) return;
+    setDownloadingLogs(true);
+    try {
+      await saveAndDownloadPodLogs(
+        contextName,
+        namespace,
+        podName,
+        containerName,
+        formatLogFileName(podName)
+      );
+    } catch (err) {
+      onError(
+        `Failed to download pod logs: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
+    } finally {
+      setDownloadingLogs(false);
+    }
+  }, [contextName, namespace, podName, containerName, onError]);
 
   const breadcrumbs = currentPath
     .split("/")
@@ -152,6 +173,26 @@ export const FileExplorer = memo(function FileExplorer({
             <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
+          </button>
+          <button
+            onClick={handleDownloadLogs}
+            disabled={downloadingLogs}
+            className="p-1 rounded hover:bg-k8s-surface/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Download pod logs"
+            aria-label="Download pod logs"
+          >
+            {downloadingLogs ? (
+              <span className="w-4 h-4 border-2 border-k8s-link border-t-transparent rounded-full animate-spin block" />
+            ) : (
+              <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+            )}
           </button>
           <RefreshButton onClick={onRefresh} loading={loading} />
         </div>
