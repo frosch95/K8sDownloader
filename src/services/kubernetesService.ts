@@ -6,7 +6,7 @@
  * interface for the application to interact with Kubernetes resources.
  */
 
-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from '../shared/types/kubernetes';
+import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from '../shared/types/kubernetes';
 import type { ElectronApiBridge } from '../shared/types/api';
 import { AppError } from '../shared/types/errors';
 import { sanitizeContainerPath, validateKubernetesIdentifier } from '../utils/kubeconfig';
@@ -25,6 +25,7 @@ export function getElectronApi(): ElectronApiBridge {
       getContexts: async () => [],
       getNamespaces: async () => [],
       getPods: async () => [],
+      getPodDetails: async () => null,
       listFiles: async () => [],
       showSaveDialog: async () => null,
       downloadFile: async () => undefined,
@@ -100,6 +101,33 @@ export class KubernetesService {
       });
       const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
       return await this.api.getPods(safeContextName, safeNamespace);
+    } catch (error) {
+      throw AppError.fromError(error);
+    }
+  }
+
+  /**
+   * Fetches detailed information about a single pod (node, IP, containers,
+   * restart counts, etc.) for display in the pod details overlay
+   *
+   * @param {string} contextName - The name of the Kubernetes context
+   * @param {string} namespace - The namespace containing the pod
+   * @param {string} podName - The name of the pod
+   * @returns {Promise<PodDetails | null>} Detailed pod information
+   * @throws {AppError} If the pod is not found or kubectl execution fails
+   */
+  static async getPodDetails(
+    contextName: string,
+    namespace: string,
+    podName: string
+  ): Promise<PodDetails | null> {
+    try {
+      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
+        allowUppercase: true,
+      });
+      const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
+      const safePodName = validateKubernetesIdentifier(podName, 'Pod name');
+      return await this.api.getPodDetails(safeContextName, safeNamespace, safePodName);
     } catch (error) {
       throw AppError.fromError(error);
     }

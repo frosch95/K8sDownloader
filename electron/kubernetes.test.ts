@@ -55,7 +55,7 @@ vi.mock("path", () => ({
   },
 }));
 
-const { downloadFile, listFiles } = await import("./kubernetes");
+const { downloadFile, listFiles, getPodDetails } = await import("./kubernetes");
 
 describe("resolveKubectlCommand", () => {
   beforeEach(() => {
@@ -513,5 +513,89 @@ describe("listFiles", () => {
     expect(() => listFiles(CONTEXT, NAMESPACE, POD, CONTAINER, DIR)).toThrow(
       /no supported file listing tool/
     );
+  });
+});
+
+// ── getPodDetails ──────────────────────────────────────────────────────────
+
+const POD_JSON = {
+  metadata: {
+    name: POD,
+    namespace: NAMESPACE,
+    creationTimestamp: "2026-08-01T10:00:00Z",
+    ownerReferences: [{ kind: "ReplicaSet", name: "authentication-service-65f4d88684" }],
+  },
+  spec: {
+    nodeName: "worker-2",
+    containers: [
+      { name: CONTAINER, image: "auth-service:1.4.2" },
+      { name: "sidecar", image: "envoy:1.28" },
+    ],
+  },
+  status: {
+    phase: "Running",
+    podIP: "10.0.4.12",
+    startTime: "2026-08-01T10:00:05Z",
+    containerStatuses: [
+      { name: CONTAINER, ready: true, restartCount: 0, state: { running: {} } },
+      {
+        name: "sidecar",
+        ready: false,
+        restartCount: 3,
+        state: { waiting: { reason: "CrashLoopBackOff" } },
+      },
+    ],
+  },
+};
+
+describe("getPodDetails", () => {
+  beforeEach(() => {
+    spawnSyncMock.mockReset();
+  });
+
+  it("maps pod, node, and container fields from the raw kubectl JSON", () => {
+    spawnSyncMock.mockReturnValue(kubectlResult(0, JSON.stringify(POD_JSON)));
+
+    const details = getPodDetails(CONTEXT, NAMESPACE, POD);
+
+    expect(details.name).toBe(POD);
+    expect(details.namespace).toBe(NAMESPACE);
+    expect(details.status).toBe("Running");
+    expect(details.node).toBe("worker-2");
+    expect(details.podIP).toBe("10.0.4.12");
+    expect(details.createdAt).toBe("2026-08-01T10:00:00Z");
+    expect(details.managedBy).toBe("ReplicaSet/authentication-service-65f4d88684");
+    expect(spawnSyncMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining(["get", "pod", POD, "-o", "json"]),
+      expect.any(Object)
+    );
+  });
+
+  it("maps per-container ready state, restart counts, and human-readable state", () => {
+    spawnSyncMock.mockReturnValue(kubectlResult(0, JSON.stringify(POD_JSON)));
+
+    const details = getPodDetails(CONTEXT, NAMESPACE, POD);
+
+    expect(details.containers).toHaveLength(2);
+    expect(details.containers[0]).toEqual({
+      name: CONTAINER,
+      image: "auth-service:1.4.2",
+      ready: true,
+      restartCount: 0,
+      state: "Running",
+    });
+    expect(details.containers[1]).toEqual({
+      name: "sidecar",
+      image: "envoy:1.28",
+      ready: false,
+      restartCount: 3,
+      state: "Waiting: CrashLoopBackOff",
+    });
+  });
+
+  it("rejects a malformed pod name before invoking kubectl", () => {
+    expect(() => getPodDetails(CONTEXT, NAMESPACE, "bad pod name")).toThrow();
+    expect(spawnSyncMock).not.toHaveBeenCalled();
   });
 });

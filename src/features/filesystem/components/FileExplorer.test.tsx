@@ -22,6 +22,7 @@ const defaultProps = {
   onNavigate: vi.fn(),
   onBack: vi.fn(),
   onRefresh: vi.fn(),
+  onShowPodInfo: vi.fn(),
   onError: vi.fn(),
 };
 
@@ -181,5 +182,12 @@ describe("FileExplorer", () => {
   it("disables the refresh button while loading", () => {
     render(<FileExplorer {...defaultProps} loading={true} />);
     expect(screen.getByTitle("Refreshing…")).toBeDisabled();
+  });
+
+  it("calls onShowPodInfo when the pod details button is clicked", () => {
+    const onShowPodInfo = vi.fn();
+    render(<FileExplorer {...defaultProps} onShowPodInfo={onShowPodInfo} />);
+    fireEvent.click(screen.getByTitle("Pod details"));
+    expect(onShowPodInfo).toHaveBeenCalledTimes(1);
   });
 });

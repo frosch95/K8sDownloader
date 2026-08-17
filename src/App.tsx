@@ -7,9 +7,11 @@ import { FileExplorer } from "./features/filesystem/components/FileExplorer";
 import { ErrorBoundary } from "./features/ui/components/ErrorBoundary";
 import { ErrorDialog } from "./features/ui/components/ErrorDialog";
 import { ThemeSelector } from "./features/ui/components/ThemeSelector";
+import { PodDetailsOverlay } from "./features/pods/components/PodDetailsOverlay";
 import { useContexts } from "./features/contexts/hooks/useContexts";
 import { useNamespaces } from "./features/namespaces/hooks/useNamespaces";
 import { usePods } from "./features/pods/hooks/usePods";
+import { usePodDetails } from "./features/pods/hooks/usePodDetails";
 import { useContainers } from "./features/containers/hooks/useContainers";
 import { useFileSystem } from "./features/filesystem/hooks/useFileSystem";
 import { useTheme } from "./features/ui/hooks/useTheme";
@@ -31,6 +33,7 @@ function App() {
   const ns = useNamespaces();
   const pods = usePods();
   const containers = useContainers();
+  const podDetails = usePodDetails();
   const fs = useFileSystem();
   const { globalError, clearGlobalError } = useKubeStore();
 
@@ -94,6 +97,12 @@ function App() {
     (dirPath: string) => { handleNavigate(dirPath); },
     [handleNavigate]
   );
+
+  const handleShowPodInfo = useCallback(() => {
+    if (ctx.selected && ns.selected && pods.selected) {
+      podDetails.open(ctx.selected, ns.selected, pods.selected.name);
+    }
+  }, [ctx.selected, ns.selected, pods.selected, podDetails.open]);
 
   const dismissError = useCallback(() => {
     clearGlobalError();
@@ -222,12 +231,21 @@ function App() {
               onNavigate={handleNavigate}
               onBack={handleBack}
               onRefresh={fsRefresh}
+              onShowPodInfo={handleShowPodInfo}
               onError={(message) => useKubeStore.getState().setGlobalError(new AppError(ErrorCode.UNKNOWN_ERROR, message))}
             />
           </ErrorBoundary>
         </main>
       </div>
 
+      <PodDetailsOverlay
+        isOpen={podDetails.isOpen}
+        podName={pods.selected?.name ?? null}
+        details={podDetails.details}
+        loading={podDetails.loading}
+        error={podDetails.error}
+        onClose={podDetails.close}
+      />
       <ErrorDialog message={globalError?.message || ''} onClose={dismissError} />
     </div>
   );
