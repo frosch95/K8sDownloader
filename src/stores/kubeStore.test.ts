@@ -16,6 +16,13 @@ const samplePod: PodInfo = {
   containers: ["nginx"],
 };
 
+const multiContainerPod: PodInfo = {
+  name: "web-abc",
+  namespace: "default",
+  status: "Running",
+  containers: ["app", "sidecar"],
+};
+
 const initialFiles: FileEntry[] = [
   { name: "app.js", path: "/src/app.js", isDir: false, size: 10, modified: "now" },
 ];
@@ -32,6 +39,7 @@ describe("kubeStore.refreshFiles", () => {
       selectedContext: "prod-cluster",
       selectedNamespace: "default",
       selectedPod: samplePod,
+      selectedContainer: "nginx",
       currentPath: "/src",
       files: initialFiles,
       navigationHistory: ["/"],
@@ -92,5 +100,74 @@ describe("kubeStore.refreshFiles", () => {
     expect(state.navigationHistory).toEqual(["/"]);
     expect(state.navigationFuture).toEqual(["/tmp"]);
     expect(state.filesLoading).toBe(false);
+  });
+});
+
+describe("kubeStore.selectPod", () => {
+  beforeEach(() => {
+    vi.mocked(KubernetesService.listFiles).mockReset();
+    vi.mocked(KubernetesService.listFiles).mockResolvedValue([]);
+    useKubeStore.setState({
+      selectedContext: "prod-cluster",
+      selectedNamespace: "default",
+      selectedPod: null,
+      selectedContainer: null,
+      pods: [],
+    });
+  });
+
+  it("defaults the selected container to the pod's first container", () => {
+    useKubeStore.getState().selectPod(multiContainerPod);
+
+    const state = useKubeStore.getState();
+    expect(state.selectedPod).toEqual(multiContainerPod);
+    expect(state.selectedContainer).toBe("app");
+    expect(KubernetesService.listFiles).toHaveBeenCalledWith(
+      "prod-cluster",
+      "default",
+      "web-abc",
+      "app",
+      "/"
+    );
+  });
+
+  it("sets the selected container to null when the pod has no containers", () => {
+    useKubeStore.getState().selectPod({ ...samplePod, containers: [] });
+
+    expect(useKubeStore.getState().selectedContainer).toBeNull();
+  });
+});
+
+describe("kubeStore.selectContainer", () => {
+  beforeEach(() => {
+    vi.mocked(KubernetesService.listFiles).mockReset();
+    vi.mocked(KubernetesService.listFiles).mockResolvedValue([]);
+    useKubeStore.setState({
+      selectedContext: "prod-cluster",
+      selectedNamespace: "default",
+      selectedPod: multiContainerPod,
+      selectedContainer: "app",
+      currentPath: "/src",
+      files: initialFiles,
+      navigationHistory: ["/"],
+      navigationFuture: ["/tmp"],
+    });
+  });
+
+  it("switches the selected container and reloads the root directory", () => {
+    useKubeStore.getState().selectContainer("sidecar");
+
+    const state = useKubeStore.getState();
+    expect(state.selectedContainer).toBe("sidecar");
+    expect(state.currentPath).toBe("/");
+    expect(state.navigationHistory).toEqual([]);
+    expect(state.navigationFuture).toEqual([]);
+    expect(KubernetesService.listFiles).toHaveBeenCalledWith(
+      "prod-cluster",
+      "default",
+      "web-abc",
+      "sidecar",
+      "/"
+    );
   });
 });

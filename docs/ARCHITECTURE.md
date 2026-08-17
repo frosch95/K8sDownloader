@@ -73,7 +73,7 @@ K8sDownloader is a desktop application built with Electron, React, and TypeScrip
 
 ### 1. Feature-based Organization
 
-The application follows a "vertical slices" approach where each feature (contexts, namespaces, pods, filesystem) is self-contained with its own:
+The application follows a "vertical slices" approach where each feature (contexts, namespaces, pods, containers, filesystem) is self-contained with its own:
 - Components
 - Hooks
 - Services
@@ -90,7 +90,7 @@ The application follows a "vertical slices" approach where each feature (context
 Instead of using React context or individual hooks, the application uses **Zustand** for centralized state management.
 
 **Key Stores:**
-- `kubeStore.ts`: Manages all Kubernetes-related state (contexts, namespaces, pods, files)
+- `kubeStore.ts`: Manages all Kubernetes-related state (contexts, namespaces, pods, containers, files)
 - `uiStore.ts`: Manages UI state (theme, etc.)
 
 **Benefits:**
@@ -187,6 +187,7 @@ Renderer code never executes kubectl directly; it only communicates with the pre
 - The main Electron window now uses sandboxing enabled for stronger isolation.
 - Renderer-side access to the Electron bridge is routed through a shared interface with a safe fallback, preventing startup crashes when the bridge is unavailable in non-Electron contexts.
 - Shared type definitions now centralize the preload contract to keep the IPC surface consistent across the service layer and the legacy API helpers.
+- Pods with more than one container expose a `ContainerSelector` dropdown (`features/containers/`); the first container is selected automatically on pod selection, and switching containers resets the file browser to the container's root directory. The `-c`/`--container` flag plumbing in `electron/kubernetes.ts` and the container-name validation already existed and required no changes — only the renderer-side selection state (`selectedContainer` in `kubeStore.ts`) was added.
 
 ## Performance Optimizations
 
@@ -196,6 +197,7 @@ Key components are memoized to prevent unnecessary re-renders:
 - `ContextSelector`
 - `NamespaceSelector`
 - `PodSelector`
+- `ContainerSelector`
 - `FileExplorer`
 - `FileRow` (with custom comparison function)
 

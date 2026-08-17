@@ -1,0 +1,644 @@
+From 53f9817077ca7bf154698ebbfbc5ab9f20ff3bc5 Mon Sep 17 00:00:00 2001
+From: "Billmann, Andreas" <Andreas.Billmann@vector.com>
+Date: Mon, 17 Aug 2026 12:27:35 +0200
+Subject: [PATCH 2/9] container selection added
+
+---
+ .claude/launch.json                           | 11 +++
+ README.md                                     | 21 ++---
+ docs/ARCHITECTURE.md                          |  6 +-
+ src/App.tsx                                   | 22 ++++--
+ .../components/ContainerSelector.test.tsx     | 52 +++++++++++++
+ .../components/ContainerSelector.tsx          | 45 +++++++++++
+ .../containers/hooks/useContainers.test.ts    | 49 ++++++++++++
+ .../containers/hooks/useContainers.ts         | 19 +++++
+ src/stores/kubeStore.test.ts                  | 77 +++++++++++++++++++
+ src/stores/kubeStore.ts                       | 64 ++++++++++-----
+ tasks.md                                      |  1 +
+ 11 files changed, 326 insertions(+), 41 deletions(-)
+ create mode 100644 .claude/launch.json
+ create mode 100644 src/features/containers/components/ContainerSelector.test.tsx
+ create mode 100644 src/features/containers/components/ContainerSelector.tsx
+ create mode 100644 src/features/containers/hooks/useContainers.test.ts
+ create mode 100644 src/features/containers/hooks/useContainers.ts
+
+diff --git a/.claude/launch.json b/.claude/launch.json
+new file mode 100644
+index 0000000..8cfedfe
+--- /dev/null
++++ b/.claude/launch.json
+@@ -0,0 +1,11 @@
++{
++  "version": "0.0.1",
++  "configurations": [
++    {
++      "name": "k8sdownloader-dev",
++      "runtimeExecutable": "pnpm",
++      "runtimeArgs": ["dev"],
++      "port": 5173
++    }
++  ]
++}
+diff --git a/README.md b/README.md
+index 0d1eda1..d28ee49 100644
+--- a/README.md
++++ b/README.md
+@@ -38,16 +38,17 @@
+ | 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig — icon refresh button reloads the context list |
+ | 2 | **Namespace Browser** | View and select namespaces available in the cluster — icon refresh button reloads the namespace list for the current context |
+ | 3 | **Pod Browser** | List pods with status badges (Running / Pending / Failed) and search filter — icon refresh button reloads the pod list for the current namespace |
+-| 4 | **File Explorer** | Browse the filesystem of any pod container with a directory table |
+-| 5 | **Filesystem Navigation** | Breadcrumb bar, double-click directories, back-button — familiar explorer UX |
+-| 6 | **Directory Refresh** | Refresh button in the file explorer reloads the current directory listing without changing the selected pod or navigating away |
+-| 7 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) / `tar` (minimal Linux images) — binary-safe, streamed directly to disk with no file size cap |
+-| 8 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
+-| 9 | **Cross-Platform Pods** | File listing and download work on Linux (with fallbacks to `find`/`busybox` for minimal images) and Windows containers — automatic fallback |
+-| 10 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
+-| 11 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
+-| 12 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
+-| 13 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
++| 4 | **Container Selection** | Pods with multiple containers show a container dropdown (hidden for single-container pods); the first container is selected automatically and switching containers reloads the file browser at the container's root |
++| 5 | **File Explorer** | Browse the filesystem of any pod container with a directory table |
++| 6 | **Filesystem Navigation** | Breadcrumb bar, double-click directories, back-button — familiar explorer UX |
++| 7 | **Directory Refresh** | Refresh button in the file explorer reloads the current directory listing without changing the selected pod or navigating away |
++| 8 | **File Download** | Download files via native save dialog using `kubectl exec cat` (Linux) / `cmd /c type` (Windows) / `tar` (minimal Linux images) — binary-safe, streamed directly to disk with no file size cap |
++| 9 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
++| 10 | **Cross-Platform Pods** | File listing and download work on Linux (with fallbacks to `find`/`busybox` for minimal images) and Windows containers — automatic fallback |
++| 11 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
++| 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
++| 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
++| 14 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
+ 
+ ## Architecture Highlights
+ 
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index ea61083..7226a55 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -73,7 +73,7 @@ K8sDownloader is a desktop application built with Electron, React, and TypeScrip
+ 
+ ### 1. Feature-based Organization
+ 
+-The application follows a "vertical slices" approach where each feature (contexts, namespaces, pods, filesystem) is self-contained with its own:
++The application follows a "vertical slices" approach where each feature (contexts, namespaces, pods, containers, filesystem) is self-contained with its own:
+ - Components
+ - Hooks
+ - Services
+@@ -90,7 +90,7 @@ The application follows a "vertical slices" approach where each feature (context
+ Instead of using React context or individual hooks, the application uses **Zustand** for centralized state management.
+ 
+ **Key Stores:**
+-- `kubeStore.ts`: Manages all Kubernetes-related state (contexts, namespaces, pods, files)
++- `kubeStore.ts`: Manages all Kubernetes-related state (contexts, namespaces, pods, containers, files)
+ - `uiStore.ts`: Manages UI state (theme, etc.)
+ 
+ **Benefits:**
+@@ -187,6 +187,7 @@ Renderer code never executes kubectl directly; it only communicates with the pre
+ - The main Electron window now uses sandboxing enabled for stronger isolation.
+ - Renderer-side access to the Electron bridge is routed through a shared interface with a safe fallback, preventing startup crashes when the bridge is unavailable in non-Electron contexts.
+ - Shared type definitions now centralize the preload contract to keep the IPC surface consistent across the service layer and the legacy API helpers.
++- Pods with more than one container expose a `ContainerSelector` dropdown (`features/containers/`); the first container is selected automatically on pod selection, and switching containers resets the file browser to the container's root directory. The `-c`/`--container` flag plumbing in `electron/kubernetes.ts` and the container-name validation already existed and required no changes — only the renderer-side selection state (`selectedContainer` in `kubeStore.ts`) was added.
+ 
+ ## Performance Optimizations
+ 
+@@ -196,6 +197,7 @@ Key components are memoized to prevent unnecessary re-renders:
+ - `ContextSelector`
+ - `NamespaceSelector`
+ - `PodSelector`
++- `ContainerSelector`
+ - `FileExplorer`
+ - `FileRow` (with custom comparison function)
+ 
+diff --git a/src/App.tsx b/src/App.tsx
+index 2e06444..9a9f00d 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
+ import { ContextSelector } from "./features/contexts/components/ContextSelector";
+ import { NamespaceSelector } from "./features/namespaces/components/NamespaceSelector";
+ import { PodSelector } from "./features/pods/components/PodSelector";
++import { ContainerSelector } from "./features/containers/components/ContainerSelector";
+ import { FileExplorer } from "./features/filesystem/components/FileExplorer";
+ import { ErrorBoundary } from "./features/ui/components/ErrorBoundary";
+ import { ErrorDialog } from "./features/ui/components/ErrorDialog";
+@@ -9,6 +10,7 @@ import { ThemeSelector } from "./features/ui/components/ThemeSelector";
+ import { useContexts } from "./features/contexts/hooks/useContexts";
+ import { useNamespaces } from "./features/namespaces/hooks/useNamespaces";
+ import { usePods } from "./features/pods/hooks/usePods";
++import { useContainers } from "./features/containers/hooks/useContainers";
+ import { useFileSystem } from "./features/filesystem/hooks/useFileSystem";
+ import { useTheme } from "./features/ui/hooks/useTheme";
+ import { useKubeStore } from "./stores/kubeStore";
+@@ -28,6 +30,7 @@ function App() {
+   const ctx = useContexts();
+   const ns = useNamespaces();
+   const pods = usePods();
++  const containers = useContainers();
+   const fs = useFileSystem();
+   const { globalError, clearGlobalError } = useKubeStore();
+ 
+@@ -71,7 +74,7 @@ function App() {
+       podsSetSelected(pod);
+       fsReset();
+       if (ctx.selected && ns.selected) {
+-        const container = pod.containers.length > 0 ? pod.containers[0] : null;
++        const container = useKubeStore.getState().selectedContainer;
+         fsNavigateTo(ctx.selected, ns.selected, pod.name, container, "/");
+       }
+     },
+@@ -81,14 +84,10 @@ function App() {
+   const handleNavigate = useCallback(
+     (dirPath: string) => {
+       if (ctx.selected && ns.selected && pods.selected) {
+-        const container =
+-          pods.selected.containers.length > 0
+-            ? pods.selected.containers[0]
+-            : null;
+-        fsNavigateTo(ctx.selected, ns.selected, pods.selected.name, container, dirPath);
++        fsNavigateTo(ctx.selected, ns.selected, pods.selected.name, containers.selected, dirPath);
+       }
+     },
+-    [ctx.selected, ns.selected, pods.selected, fsNavigateTo]
++    [ctx.selected, ns.selected, pods.selected, containers.selected, fsNavigateTo]
+   );
+ 
+   const handleBack = useCallback(
+@@ -178,6 +177,13 @@ function App() {
+                 onRefresh={pods.reload}
+               />
+             </ErrorBoundary>
++            <ErrorBoundary>
++              <ContainerSelector
++                containers={containers.containers}
++                selected={containers.selected}
++                onSelect={containers.setSelected}
++              />
++            </ErrorBoundary>
+           </div>
+ 
+           <div className="shrink-0 px-4 py-3 border-t border-k8s-border bg-k8s-surface/30">
+@@ -212,7 +218,7 @@ function App() {
+               contextName={ctx.selected}
+               namespace={ns.selected}
+               podName={pods.selected?.name ?? ""}
+-              containerName={pods.selected?.containers?.[0] ?? null}
++              containerName={containers.selected}
+               onNavigate={handleNavigate}
+               onBack={handleBack}
+               onRefresh={fsRefresh}
+diff --git a/src/features/containers/components/ContainerSelector.test.tsx b/src/features/containers/components/ContainerSelector.test.tsx
+new file mode 100644
+index 0000000..ad13540
+--- /dev/null
++++ b/src/features/containers/components/ContainerSelector.test.tsx
+@@ -0,0 +1,52 @@
++import { describe, it, expect, vi } from "vitest";
++import { render, screen, fireEvent } from "@testing-library/react";
++import { ContainerSelector } from "./ContainerSelector";
++
++describe("ContainerSelector", () => {
++  it("renders nothing when there are no containers", () => {
++    const { container } = render(
++      <ContainerSelector containers={[]} selected={null} onSelect={vi.fn()} />
++    );
++    expect(container).toBeEmptyDOMElement();
++  });
++
++  it("renders nothing when there is only one container", () => {
++    const { container } = render(
++      <ContainerSelector containers={["nginx"]} selected="nginx" onSelect={vi.fn()} />
++    );
++    expect(container).toBeEmptyDOMElement();
++  });
++
++  it("renders the label and all container options when there are multiple containers", () => {
++    render(
++      <ContainerSelector
++        containers={["app", "sidecar"]}
++        selected="app"
++        onSelect={vi.fn()}
++      />
++    );
++
++    expect(screen.getByText("Container")).toBeInTheDocument();
++
++    const button = screen.getByRole("button", { name: "app" });
++    fireEvent.click(button);
++
++    expect(screen.getByText("sidecar")).toBeInTheDocument();
++  });
++
++  it("calls onSelect when a different container is chosen", () => {
++    const onSelect = vi.fn();
++    render(
++      <ContainerSelector
++        containers={["app", "sidecar"]}
++        selected="app"
++        onSelect={onSelect}
++      />
++    );
++
++    fireEvent.click(screen.getByRole("button", { name: "app" }));
++    fireEvent.click(screen.getByText("sidecar"));
++
++    expect(onSelect).toHaveBeenCalledWith("sidecar");
++  });
++});
+diff --git a/src/features/containers/components/ContainerSelector.tsx b/src/features/containers/components/ContainerSelector.tsx
+new file mode 100644
+index 0000000..82ea247
+--- /dev/null
++++ b/src/features/containers/components/ContainerSelector.tsx
+@@ -0,0 +1,45 @@
++import { memo } from "react";
++import { CustomSelect } from "../../ui/components/CustomSelect";
++
++interface ContainerSelectorProps {
++  containers: string[];
++  selected: string | null;
++  onSelect: (name: string) => void;
++}
++
++export const ContainerSelector = memo(function ContainerSelector({
++  containers,
++  selected,
++  onSelect,
++}: ContainerSelectorProps) {
++  // A single-container pod has nothing to choose, so stay out of the way.
++  if (containers.length <= 1) {
++    return null;
++  }
++
++  const containerOptions = containers.map((name) => ({
++    value: name,
++    label: name,
++  }));
++
++  return (
++    <div className="space-y-3">
++      <div className="flex items-center gap-2">
++        <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.25 7.5l-8.25 4.5L3.75 7.5M20.25 7.5l-8.25-4.5L3.75 7.5M20.25 7.5v9l-8.25 4.5M3.75 7.5v9l8.25 4.5m0-9v9" />
++        </svg>
++        <label className="text-sm font-medium text-k8s-muted uppercase tracking-wider">
++          Container
++        </label>
++      </div>
++
++      <CustomSelect
++        value={selected || ""}
++        options={containerOptions}
++        onChange={onSelect}
++        className="w-full"
++        size="md"
++      />
++    </div>
++  );
++});
+diff --git a/src/features/containers/hooks/useContainers.test.ts b/src/features/containers/hooks/useContainers.test.ts
+new file mode 100644
+index 0000000..26900dd
+--- /dev/null
++++ b/src/features/containers/hooks/useContainers.test.ts
+@@ -0,0 +1,49 @@
++import { describe, it, expect, beforeEach } from "vitest";
++import { renderHook } from "@testing-library/react";
++import { useContainers } from "./useContainers";
++import { useKubeStore } from "../../../stores/kubeStore";
++import type { PodInfo } from "../../../shared/types/kubernetes";
++
++const multiContainerPod: PodInfo = {
++  name: "web-abc",
++  namespace: "default",
++  status: "Running",
++  containers: ["app", "sidecar"],
++};
++
++describe("useContainers", () => {
++  beforeEach(() => {
++    useKubeStore.setState({
++      selectedPod: null,
++      selectedContainer: null,
++    });
++  });
++
++  it("returns an empty container list when no pod is selected", () => {
++    const { result } = renderHook(() => useContainers());
++
++    expect(result.current.containers).toEqual([]);
++    expect(result.current.selected).toBeNull();
++  });
++
++  it("exposes the selected pod's containers and the currently selected container", () => {
++    useKubeStore.setState({
++      selectedPod: multiContainerPod,
++      selectedContainer: "sidecar",
++    });
++
++    const { result } = renderHook(() => useContainers());
++
++    expect(result.current.containers).toEqual(["app", "sidecar"]);
++    expect(result.current.selected).toBe("sidecar");
++  });
++
++  it("setSelected delegates to the store's selectContainer action", () => {
++    useKubeStore.setState({ selectedPod: multiContainerPod });
++    const { result } = renderHook(() => useContainers());
++
++    result.current.setSelected("app");
++
++    expect(useKubeStore.getState().selectedContainer).toBe("app");
++  });
++});
+diff --git a/src/features/containers/hooks/useContainers.ts b/src/features/containers/hooks/useContainers.ts
+new file mode 100644
+index 0000000..bd2fab1
+--- /dev/null
++++ b/src/features/containers/hooks/useContainers.ts
+@@ -0,0 +1,19 @@
++/**
++ * useContainers Hook
++ *
++ * Provides access to container-related state and actions from the KubeStore.
++ * Containers belong to the currently selected pod, so the list is derived
++ * from it rather than loaded independently.
++ */
++
++import { useKubeStore } from '../../../stores/kubeStore';
++
++export function useContainers() {
++  const { selectedPod, selectedContainer, selectContainer } = useKubeStore();
++
++  return {
++    containers: selectedPod?.containers ?? [],
++    selected: selectedContainer,
++    setSelected: selectContainer,
++  };
++}
+diff --git a/src/stores/kubeStore.test.ts b/src/stores/kubeStore.test.ts
+index be6f6e4..18a87f6 100644
+--- a/src/stores/kubeStore.test.ts
++++ b/src/stores/kubeStore.test.ts
+@@ -16,6 +16,13 @@ const samplePod: PodInfo = {
+   containers: ["nginx"],
+ };
+ 
++const multiContainerPod: PodInfo = {
++  name: "web-abc",
++  namespace: "default",
++  status: "Running",
++  containers: ["app", "sidecar"],
++};
++
+ const initialFiles: FileEntry[] = [
+   { name: "app.js", path: "/src/app.js", isDir: false, size: 10, modified: "now" },
+ ];
+@@ -32,6 +39,7 @@ describe("kubeStore.refreshFiles", () => {
+       selectedContext: "prod-cluster",
+       selectedNamespace: "default",
+       selectedPod: samplePod,
++      selectedContainer: "nginx",
+       currentPath: "/src",
+       files: initialFiles,
+       navigationHistory: ["/"],
+@@ -94,3 +102,72 @@ describe("kubeStore.refreshFiles", () => {
+     expect(state.filesLoading).toBe(false);
+   });
+ });
++
++describe("kubeStore.selectPod", () => {
++  beforeEach(() => {
++    vi.mocked(KubernetesService.listFiles).mockReset();
++    vi.mocked(KubernetesService.listFiles).mockResolvedValue([]);
++    useKubeStore.setState({
++      selectedContext: "prod-cluster",
++      selectedNamespace: "default",
++      selectedPod: null,
++      selectedContainer: null,
++      pods: [],
++    });
++  });
++
++  it("defaults the selected container to the pod's first container", () => {
++    useKubeStore.getState().selectPod(multiContainerPod);
++
++    const state = useKubeStore.getState();
++    expect(state.selectedPod).toEqual(multiContainerPod);
++    expect(state.selectedContainer).toBe("app");
++    expect(KubernetesService.listFiles).toHaveBeenCalledWith(
++      "prod-cluster",
++      "default",
++      "web-abc",
++      "app",
++      "/"
++    );
++  });
++
++  it("sets the selected container to null when the pod has no containers", () => {
++    useKubeStore.getState().selectPod({ ...samplePod, containers: [] });
++
++    expect(useKubeStore.getState().selectedContainer).toBeNull();
++  });
++});
++
++describe("kubeStore.selectContainer", () => {
++  beforeEach(() => {
++    vi.mocked(KubernetesService.listFiles).mockReset();
++    vi.mocked(KubernetesService.listFiles).mockResolvedValue([]);
++    useKubeStore.setState({
++      selectedContext: "prod-cluster",
++      selectedNamespace: "default",
++      selectedPod: multiContainerPod,
++      selectedContainer: "app",
++      currentPath: "/src",
++      files: initialFiles,
++      navigationHistory: ["/"],
++      navigationFuture: ["/tmp"],
++    });
++  });
++
++  it("switches the selected container and reloads the root directory", () => {
++    useKubeStore.getState().selectContainer("sidecar");
++
++    const state = useKubeStore.getState();
++    expect(state.selectedContainer).toBe("sidecar");
++    expect(state.currentPath).toBe("/");
++    expect(state.navigationHistory).toEqual([]);
++    expect(state.navigationFuture).toEqual([]);
++    expect(KubernetesService.listFiles).toHaveBeenCalledWith(
++      "prod-cluster",
++      "default",
++      "web-abc",
++      "sidecar",
++      "/"
++    );
++  });
++});
+diff --git a/src/stores/kubeStore.ts b/src/stores/kubeStore.ts
+index e643258..0f05bab 100644
+--- a/src/stores/kubeStore.ts
++++ b/src/stores/kubeStore.ts
+@@ -29,7 +29,10 @@ interface KubeState {
+   selectedPod: PodInfo | null;
+   podsLoading: boolean;
+   podsError: AppError | null;
+-  
++
++  // Container state
++  selectedContainer: string | null;
++
+   // File system state
+   files: FileEntry[];
+   currentPath: string;
+@@ -50,7 +53,9 @@ interface KubeState {
+   loadPods: (contextName: string, namespace: string) => Promise<void>;
+   selectPod: (pod: PodInfo) => void;
+   clearPodsError: () => void;
+-  
++
++  selectContainer: (containerName: string) => void;
++
+   navigateTo: (
+     contextName: string,
+     namespace: string,
+@@ -88,7 +93,9 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+   selectedPod: null,
+   podsLoading: false,
+   podsError: null,
+-  
++
++  selectedContainer: null,
++
+   files: [],
+   currentPath: '/',
+   navigationHistory: [],
+@@ -127,12 +134,13 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+   },
+   
+   selectContext: (contextName) => {
+-    set({ 
++    set({
+       selectedContext: contextName,
+       selectedNamespace: null,
+       namespaces: [],
+       selectedPod: null,
+       pods: [],
++      selectedContainer: null,
+       files: [],
+       currentPath: '/',
+       navigationHistory: [],
+@@ -193,10 +201,11 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+   
+   selectNamespace: (namespace) => {
+     const { selectedContext } = get();
+-    set({ 
++    set({
+       selectedNamespace: namespace,
+       selectedPod: null,
+       pods: [],
++      selectedContainer: null,
+       files: [],
+       currentPath: '/',
+       navigationHistory: [],
+@@ -250,17 +259,34 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+   
+   selectPod: (pod) => {
+     const { selectedContext, selectedNamespace } = get();
+-    set({ selectedPod: pod });
+-    
++    const container = pod.containers.length > 0 ? pod.containers[0] : null;
++    set({ selectedPod: pod, selectedContainer: container });
++
+     // Auto-navigate to root directory when pod is selected
+     if (selectedContext && selectedNamespace && pod) {
+-      const container = pod.containers.length > 0 ? pod.containers[0] : null;
+       get().navigateTo(selectedContext, selectedNamespace, pod.name, container, '/');
+     }
+   },
+-  
++
+   clearPodsError: () => set({ podsError: null, globalError: null }),
+-  
++
++  // Container actions
++  selectContainer: (containerName) => {
++    const { selectedContext, selectedNamespace, selectedPod } = get();
++    const container = containerName || null;
++    set({
++      selectedContainer: container,
++      files: [],
++      currentPath: '/',
++      navigationHistory: [],
++      navigationFuture: []
++    });
++
++    if (selectedContext && selectedNamespace && selectedPod) {
++      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, container, '/');
++    }
++  },
++
+   // File system actions
+   navigateTo: async (contextName, namespace, podName, containerName, dirPath) => {
+     if (!contextName) {
+@@ -323,10 +349,9 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+     });
+     
+     // Reload files for the previous path
+-    const { selectedContext, selectedNamespace, selectedPod } = get();
++    const { selectedContext, selectedNamespace, selectedPod, selectedContainer } = get();
+     if (selectedContext && selectedNamespace && selectedPod) {
+-      const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
+-      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, container, previousPath);
++      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, selectedContainer, previousPath);
+     }
+   },
+   
+@@ -345,28 +370,25 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+     });
+     
+     // Reload files for the next path
+-    const { selectedContext, selectedNamespace, selectedPod } = get();
++    const { selectedContext, selectedNamespace, selectedPod, selectedContainer } = get();
+     if (selectedContext && selectedNamespace && selectedPod) {
+-      const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
+-      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, container, nextPath);
++      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, selectedContainer, nextPath);
+     }
+   },
+-  
++
+   refreshFiles: async () => {
+-    const { selectedContext, selectedNamespace, selectedPod, currentPath } = get();
++    const { selectedContext, selectedNamespace, selectedPod, selectedContainer, currentPath } = get();
+     if (!selectedContext || !selectedNamespace || !selectedPod) {
+       return;
+     }
+ 
+-    const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
+-
+     set({ filesLoading: true, filesError: null });
+     try {
+       const files = await KubernetesService.listFiles(
+         selectedContext,
+         selectedNamespace,
+         selectedPod.name,
+-        container,
++        selectedContainer,
+         currentPath
+       );
+       // Reload the current directory only — navigation history/future is untouched
+diff --git a/tasks.md b/tasks.md
+index 7ae2700..11ef0c1 100644
+--- a/tasks.md
++++ b/tasks.md
+@@ -5,6 +5,7 @@
+ ## In Progress
+ 
+ ## Done
++- [x] As a user i want to select the container as well if there are multiple containers in a pod.
+ - [x] Add tar-based download fallback (like `kubectl cp`) for minimal Linux containers without cat/cmd
+ - [x] List files in minimal Linux containers via additional fallbacks (find, busybox) and document that distroless/scratch images (e.g. CoreDNS) have no tools to exec
+ - [x] before trying windows cmd try alternatives to ls, because it may be a linux container without ls
+-- 
+2.51.1.windows.1
+

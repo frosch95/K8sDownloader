@@ -1,0 +1,387 @@
+From 82bf0bde4ae1cd085b10116737edde3d15aeb3cf Mon Sep 17 00:00:00 2001
+From: "Billmann, Andreas" <Andreas.Billmann@vector.com>
+Date: Mon, 17 Aug 2026 14:49:38 +0200
+Subject: [PATCH 8/9] make the drop down lists filterable
+
+---
+ README.md                                     |  4 +-
+ docs/ARCHITECTURE.md                          |  1 +
+ .../components/ContextSelector.test.tsx       | 21 ++++
+ .../contexts/components/ContextSelector.tsx   |  2 +
+ .../components/NamespaceSelector.test.tsx     | 22 +++++
+ .../components/NamespaceSelector.tsx          |  2 +
+ .../ui/components/CustomSelect.test.tsx       | 65 +++++++++++++
+ src/features/ui/components/CustomSelect.tsx   | 97 +++++++++++++------
+ src/stores/kubeStore.ts                       |  2 +-
+ tasks.md                                      |  1 +
+ 10 files changed, 186 insertions(+), 31 deletions(-)
+
+diff --git a/README.md b/README.md
+index b35be32..c1e6725 100644
+--- a/README.md
++++ b/README.md
+@@ -35,8 +35,8 @@
+ 
+ | # | Feature | Description |
+ |---|---------|-------------|
+-| 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig — icon refresh button reloads the context list |
+-| 2 | **Namespace Browser** | View and select namespaces available in the cluster — icon refresh button reloads the namespace list for the current context |
++| 1 | **Context Selection** | Pick any Kubernetes context from your local kubeconfig — filterable dropdown with an icon refresh button that reloads the context list |
++| 2 | **Namespace Browser** | View and select namespaces available in the cluster — filterable dropdown with an icon refresh button that reloads the namespace list for the current context |
+ | 3 | **Pod Browser** | List pods with status badges (Running / Pending / Failed) and search filter — icon refresh button reloads the pod list for the current namespace |
+ | 4 | **Container Selection** | Pods with multiple containers show a container dropdown (hidden for single-container pods); the first container is selected automatically and switching containers reloads the file browser at the container's root |
+ | 5 | **File Explorer** | Browse the filesystem of any pod container with a directory table |
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index d4b10f0..fff5464 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -194,6 +194,7 @@ Renderer code never executes kubectl directly; it only communicates with the pre
+ - Each container's mount list renders inside a native `<details>`/`<summary>` element labeled "Mounts (n)", collapsed by default, rather than a custom accordion component — native disclosure widgets give free keyboard/accessibility support and need no extra state.
+ - `PodDetailsOverlay` is resizable: a grip handle in the bottom-right corner drags the dialog's width/height (tracked in local `useState`, clamped to `UI.POD_DETAILS_WIDTH_MIN/MAX` and `..._HEIGHT_MIN/MAX` in `shared/constants`), following the same delta-from-drag-start approach as the sidebar resize in `App.tsx` but scoped locally to the component instead of lifted to app state — the size only matters while the overlay is open and has no other consumer. The dialog switched from content-sized (`max-w-lg`/`max-h-[60vh]`) to an explicit `flex flex-col` layout with a `flex-1 min-h-0 overflow-y-auto` body so the fixed pixel size still scrolls correctly at any dimension.
+ - Status/ready badges ("Running", "Ready") use a `--k8s-success` CSS variable (`text-k8s-success`/`bg-k8s-success/15`, registered in the `@theme` block in `index.css`) instead of Tailwind's fixed `green-400`/`green-500`. `green-400` (`#4ade80`) reads fine against the dark and darcula themes' near-black backgrounds but fails contrast against the light theme's pale background (`#f0f4f8`), so `:root` (light) defines `--k8s-success: #15803d` (a much darker green) while `.dark`/`.darcula` keep `#4ade80`. This mirrors how every other themed color (`k8s-link`, `k8s-muted`, etc.) is defined per-theme in `index.css` rather than hardcoding a Tailwind palette color that ignores the active theme.
++- `CustomSelect` (`features/ui/components/`) gained an opt-in `filterable`/`filterPlaceholder` prop pair: when set, an auto-focused text input renders above the option list and filters options by a case-insensitive substring match on `label`. `ContextSelector` and `NamespaceSelector` pass `filterable` (context/namespace lists can grow long); `ThemeSelector`'s fixed four-option list leaves it off (the default), so that consumer is unaffected. The option list also gained a `max-h-60 overflow-y-auto` cap so a long (filtered or unfiltered) list no longer grows the dropdown past the viewport. The filter query resets whenever the dropdown closes, so each open starts from a clean slate.
+ 
+ ## Performance Optimizations
+ 
+diff --git a/src/features/contexts/components/ContextSelector.test.tsx b/src/features/contexts/components/ContextSelector.test.tsx
+index c35d81c..e7066f2 100644
+--- a/src/features/contexts/components/ContextSelector.test.tsx
++++ b/src/features/contexts/components/ContextSelector.test.tsx
+@@ -57,6 +57,27 @@ describe("ContextSelector", () => {
+     expect(screen.getByText("staging (staging-eu)")).toBeInTheDocument();
+   });
+ 
++  it("filters the context list by the typed query", () => {
++    render(
++      <ContextSelector
++        contexts={sampleContexts}
++        selected=""
++        loading={false}
++        onSelect={vi.fn()}
++        onRefresh={vi.fn()}
++      />
++    );
++
++    fireEvent.click(screen.getByRole("button", { name: "Select a context…" }));
++    fireEvent.change(screen.getByPlaceholderText("Filter contexts…"), {
++      target: { value: "dev" },
++    });
++
++    expect(screen.getByText("dev-cluster (dev-us)")).toBeInTheDocument();
++    expect(screen.queryByText("prod-cluster (prod-eu)")).not.toBeInTheDocument();
++    expect(screen.queryByText("staging (staging-eu)")).not.toBeInTheDocument();
++  });
++
+   it("calls onSelect when a context is chosen", () => {
+     const onSelect = vi.fn();
+     render(
+diff --git a/src/features/contexts/components/ContextSelector.tsx b/src/features/contexts/components/ContextSelector.tsx
+index 52231ee..9dea343 100644
+--- a/src/features/contexts/components/ContextSelector.tsx
++++ b/src/features/contexts/components/ContextSelector.tsx
+@@ -53,6 +53,8 @@ export const ContextSelector = memo(function ContextSelector({
+           onChange={onSelect}
+           className="w-full"
+           size="md"
++          filterable
++          filterPlaceholder="Filter contexts…"
+         />
+       )}
+     </div>
+diff --git a/src/features/namespaces/components/NamespaceSelector.test.tsx b/src/features/namespaces/components/NamespaceSelector.test.tsx
+index 90b0a54..1652893 100644
+--- a/src/features/namespaces/components/NamespaceSelector.test.tsx
++++ b/src/features/namespaces/components/NamespaceSelector.test.tsx
+@@ -59,6 +59,28 @@ describe("NamespaceSelector", () => {
+     expect(screen.getByText("production")).toBeInTheDocument();
+   });
+ 
++  it("filters the namespace list by the typed query", () => {
++    render(
++      <NamespaceSelector
++        namespaces={sampleNamespaces}
++        selected=""
++        loading={false}
++        disabled={false}
++        onSelect={vi.fn()}
++        onRefresh={vi.fn()}
++      />
++    );
++
++    fireEvent.click(screen.getByRole("button", { name: "Select a namespace…" }));
++    fireEvent.change(screen.getByPlaceholderText("Filter namespaces…"), {
++      target: { value: "prod" },
++    });
++
++    expect(screen.getByText("production")).toBeInTheDocument();
++    expect(screen.queryByText("default")).not.toBeInTheDocument();
++    expect(screen.queryByText("kube-system")).not.toBeInTheDocument();
++  });
++
+   it("calls onSelect when a namespace is chosen", () => {
+     const onSelect = vi.fn();
+     render(
+diff --git a/src/features/namespaces/components/NamespaceSelector.tsx b/src/features/namespaces/components/NamespaceSelector.tsx
+index aae7908..7b463b7 100644
+--- a/src/features/namespaces/components/NamespaceSelector.tsx
++++ b/src/features/namespaces/components/NamespaceSelector.tsx
+@@ -55,6 +55,8 @@ export const NamespaceSelector = memo(function NamespaceSelector({
+           disabled={disabled || namespaces.length === 0}
+           className="w-full"
+           size="md"
++          filterable
++          filterPlaceholder="Filter namespaces…"
+         />
+       )}
+     </div>
+diff --git a/src/features/ui/components/CustomSelect.test.tsx b/src/features/ui/components/CustomSelect.test.tsx
+index 5ac40cc..98bf994 100644
+--- a/src/features/ui/components/CustomSelect.test.tsx
++++ b/src/features/ui/components/CustomSelect.test.tsx
+@@ -143,4 +143,69 @@ describe('CustomSelect', () => {
+     fireEvent.click(button);
+     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+   });
++
++  it('should not render a filter input by default', () => {
++    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} />);
++
++    fireEvent.click(screen.getByRole('button'));
++
++    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
++  });
++
++  it('should render a filter input when filterable', () => {
++    render(
++      <CustomSelect
++        value="option1"
++        options={mockOptions}
++        onChange={mockOnChange}
++        filterable
++        filterPlaceholder="Filter options…"
++      />
++    );
++
++    fireEvent.click(screen.getByRole('button'));
++
++    expect(screen.getByPlaceholderText('Filter options…')).toBeInTheDocument();
++  });
++
++  it('should filter options by the typed query', () => {
++    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
++
++    fireEvent.click(screen.getByRole('button'));
++    fireEvent.change(screen.getByPlaceholderText('Filter…'), { target: { value: '2' } });
++
++    expect(screen.getByRole('option', { name: 'Option 2' })).toBeInTheDocument();
++    expect(screen.queryByRole('option', { name: 'Option 1' })).not.toBeInTheDocument();
++    expect(screen.queryByRole('option', { name: 'Option 3' })).not.toBeInTheDocument();
++  });
++
++  it('should show a "No matches" message when the filter matches nothing', () => {
++    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
++
++    fireEvent.click(screen.getByRole('button'));
++    fireEvent.change(screen.getByPlaceholderText('Filter…'), { target: { value: 'nonexistent' } });
++
++    expect(screen.getByText('No matches')).toBeInTheDocument();
++    expect(screen.queryByRole('option')).not.toBeInTheDocument();
++  });
++
++  it('should clear the filter query after selecting an option', () => {
++    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
++
++    fireEvent.click(screen.getByRole('button'));
++    fireEvent.change(screen.getByPlaceholderText('Filter…'), { target: { value: '2' } });
++    fireEvent.click(screen.getByRole('option', { name: 'Option 2' }));
++
++    fireEvent.click(screen.getByRole('button'));
++    expect((screen.getByPlaceholderText('Filter…') as HTMLInputElement).value).toBe('');
++  });
++
++  it('should close the dropdown when Escape is pressed in the filter input', () => {
++    render(<CustomSelect value="option1" options={mockOptions} onChange={mockOnChange} filterable />);
++
++    fireEvent.click(screen.getByRole('button'));
++    fireEvent.keyDown(screen.getByPlaceholderText('Filter…'), { key: 'Escape' });
++
++    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
++  });
+ });
+diff --git a/src/features/ui/components/CustomSelect.tsx b/src/features/ui/components/CustomSelect.tsx
+index 3368c84..0edb4ef 100644
+--- a/src/features/ui/components/CustomSelect.tsx
++++ b/src/features/ui/components/CustomSelect.tsx
+@@ -14,17 +14,22 @@ interface CustomSelectProps<T extends string> {
+   size?: 'sm' | 'md' | 'lg';
+   className?: string;
+   disabled?: boolean;
++  filterable?: boolean;
++  filterPlaceholder?: string;
+ }
+ 
+-export function CustomSelect<T extends string>({ 
+-  value, 
+-  options, 
+-  onChange, 
++export function CustomSelect<T extends string>({
++  value,
++  options,
++  onChange,
+   size = 'sm',
+   className = '',
+   disabled = false,
++  filterable = false,
++  filterPlaceholder = 'Filter…',
+ }: CustomSelectProps<T>) {
+   const [isOpen, setIsOpen] = useState(false);
++  const [filterQuery, setFilterQuery] = useState('');
+ 
+   // Derive selected option from props (controlled component pattern)
+   const selectedOption = useMemo(
+@@ -32,6 +37,7 @@ export function CustomSelect<T extends string>({
+     [value, options]
+   );
+   const dropdownRef = useRef<HTMLDivElement>(null);
++  const filterInputRef = useRef<HTMLInputElement>(null);
+ 
+   const sizeClasses = {
+     sm: 'px-3 py-1.5 text-sm',
+@@ -39,14 +45,25 @@ export function CustomSelect<T extends string>({
+     lg: 'px-5 py-2.5 text-base',
+   };
+ 
++  const filteredOptions = useMemo(() => {
++    if (!filterable || !filterQuery.trim()) return options;
++    const query = filterQuery.toLowerCase();
++    return options.filter(opt => opt.label.toLowerCase().includes(query));
++  }, [options, filterable, filterQuery]);
++
++  const closeDropdown = () => {
++    setIsOpen(false);
++    setFilterQuery('');
++  };
++
+   const handleSelect = (option: { value: T; label: string }) => {
+     onChange(option.value);
+-    setIsOpen(false);
++    closeDropdown();
+   };
+ 
+   const handleClickOutside = (event: MouseEvent) => {
+     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+-      setIsOpen(false);
++      closeDropdown();
+     }
+   };
+ 
+@@ -57,7 +74,11 @@ export function CustomSelect<T extends string>({
+     };
+   }, []);
+ 
+-
++  useEffect(() => {
++    if (isOpen && filterable) {
++      filterInputRef.current?.focus();
++    }
++  }, [isOpen, filterable]);
+ 
+   const selectedLabel = selectedOption ? selectedOption.label : options[0]?.label || '';
+ 
+@@ -85,27 +106,47 @@ export function CustomSelect<T extends string>({
+       </button>
+ 
+       {isOpen && (
+-        <ul
+-          className="absolute z-10 w-full mt-1 bg-k8s-surface/90 backdrop-blur-lg border border-k8s-border rounded-lg shadow-xl shadow-black/10 overflow-hidden animate-[fadeIn_0.15s_ease-out]"
+-          role="listbox"
+-        >
+-          {options.map((option) => (
+-            <li
+-              key={option.value}
+-              className={`px-3 py-2 text-sm cursor-pointer transition-all
+-                         ${option.value === selectedOption?.value 
+-                           ? 'bg-gradient-accent/10 text-k8s-link font-medium border-l-2 border-l-k8s-link' 
+-                           : 'hover:bg-k8s-border/20 hover:border-l-2 hover:border-l-k8s-link/30 text-k8s-text border-l-2 border-l-transparent'}
+-                         ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+-              onClick={() => !option.disabled && handleSelect(option)}
+-              role="option"
+-              aria-selected={option.value === selectedOption?.value}
+-              aria-disabled={option.disabled}
+-            >
+-              {option.label}
+-            </li>
+-          ))}
+-        </ul>
++        <div className="absolute z-10 w-full mt-1 bg-k8s-surface/90 backdrop-blur-lg border border-k8s-border rounded-lg shadow-xl shadow-black/10 overflow-hidden animate-[fadeIn_0.15s_ease-out]">
++          {filterable && (
++            <div className="p-2 border-b border-k8s-border/60">
++              <input
++                ref={filterInputRef}
++                type="text"
++                value={filterQuery}
++                onChange={(e) => setFilterQuery(e.target.value)}
++                onKeyDown={(e) => {
++                  if (e.key === 'Escape') closeDropdown();
++                }}
++                placeholder={filterPlaceholder}
++                aria-label={filterPlaceholder}
++                className="w-full bg-gradient-subtle border border-k8s-border rounded-md px-2.5 py-1.5 text-sm text-k8s-text
++                           placeholder:text-k8s-muted/50 focus:outline-none focus:ring-2 focus:ring-k8s-blue/40"
++              />
++            </div>
++          )}
++          <ul className="max-h-60 overflow-y-auto" role="listbox">
++            {filteredOptions.length === 0 ? (
++              <li className="px-3 py-2 text-sm text-k8s-muted">No matches</li>
++            ) : (
++              filteredOptions.map((option) => (
++                <li
++                  key={option.value}
++                  className={`px-3 py-2 text-sm cursor-pointer transition-all
++                             ${option.value === selectedOption?.value
++                               ? 'bg-gradient-accent/10 text-k8s-link font-medium border-l-2 border-l-k8s-link'
++                               : 'hover:bg-k8s-border/20 hover:border-l-2 hover:border-l-k8s-link/30 text-k8s-text border-l-2 border-l-transparent'}
++                             ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
++                  onClick={() => !option.disabled && handleSelect(option)}
++                  role="option"
++                  aria-selected={option.value === selectedOption?.value}
++                  aria-disabled={option.disabled}
++                >
++                  {option.label}
++                </li>
++              ))
++            )}
++          </ul>
++        </div>
+       )}
+     </div>
+   );
+diff --git a/src/stores/kubeStore.ts b/src/stores/kubeStore.ts
+index 0f05bab..354a004 100644
+--- a/src/stores/kubeStore.ts
++++ b/src/stores/kubeStore.ts
+@@ -83,7 +83,7 @@ export const useKubeStore = create<KubeState>((set, get) => ({
+   selectedContext: typeof window !== 'undefined' ? localStorage.getItem('selectedContext') : null,
+   contextsLoading: false,
+   contextsError: null,
+-  
++
+   namespaces: [],
+   selectedNamespace: typeof window !== 'undefined' ? localStorage.getItem('selectedNamespace') : null,
+   namespacesLoading: false,
+diff --git a/tasks.md b/tasks.md
+index a0d0648..4e91d56 100644
+--- a/tasks.md
++++ b/tasks.md
+@@ -5,6 +5,7 @@
+ ## In Progress
+ 
+ ## Done
++- [x] allow to filter the cluster list and the namespace list as well
+ - [x] The green in the status is hard to read on a light theme. Use a darker green in the light theme.
+ - [x] as a user i want to have thw mount information in a foldable element with the name Mounts.
+ - [x] As a user i want to have the pod details overlay resizable. 
+-- 
+2.51.1.windows.1
+

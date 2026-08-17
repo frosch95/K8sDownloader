@@ -1,0 +1,1031 @@
+From 3dab9e9417fe4e198439761ebb08738a2829060b Mon Sep 17 00:00:00 2001
+From: "Billmann, Andreas" <Andreas.Billmann@vector.com>
+Date: Mon, 17 Aug 2026 13:22:15 +0200
+Subject: [PATCH 3/9] pod details dialog added
+
+---
+ README.md                                     |   5 +-
+ docs/ARCHITECTURE.md                          |   1 +
+ electron/kubernetes.test.ts                   |  86 +++++++++-
+ electron/kubernetes.ts                        | 107 ++++++++++++
+ electron/main.ts                              |   8 +
+ electron/preload.ts                           |   9 +-
+ src/App.tsx                                   |  18 ++
+ .../components/FileExplorer.test.tsx          |   8 +
+ .../filesystem/components/FileExplorer.tsx    |  16 +-
+ .../components/PodDetailsOverlay.test.tsx     | 115 +++++++++++++
+ .../pods/components/PodDetailsOverlay.tsx     | 158 ++++++++++++++++++
+ src/features/pods/hooks/usePodDetails.test.ts |  87 ++++++++++
+ src/features/pods/hooks/usePodDetails.ts      |  39 +++++
+ src/services/kubernetesService.test.ts        |   1 +
+ src/services/kubernetesService.ts             |  30 +++-
+ src/shared/types/api.ts                       |   7 +-
+ src/shared/types/kubernetes.ts                |  20 +++
+ tasks.md                                      |   1 +
+ 18 files changed, 710 insertions(+), 6 deletions(-)
+ create mode 100644 src/features/pods/components/PodDetailsOverlay.test.tsx
+ create mode 100644 src/features/pods/components/PodDetailsOverlay.tsx
+ create mode 100644 src/features/pods/hooks/usePodDetails.test.ts
+ create mode 100644 src/features/pods/hooks/usePodDetails.ts
+
+diff --git a/README.md b/README.md
+index d28ee49..b5e193b 100644
+--- a/README.md
++++ b/README.md
+@@ -48,7 +48,8 @@
+ | 11 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
+ | 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
+ | 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
+-| 14 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
++| 14 | **Pod Details Overlay** | An info button in the file explorer opens an overlay with the selected pod's status, node, IP, creation time, controller, and per-container image/ready/restart-count details (press Esc to dismiss) |
++| 15 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
+ 
+ ## Architecture Highlights
+ 
+@@ -78,6 +79,7 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
+ | `get-contexts` | main → renderer | — | `ContextInfo[]` |
+ | `get-namespaces` | main → renderer | `contextName` | `NamespaceInfo[]` |
+ | `get-pods` | main → renderer | `contextName, namespace` | `PodInfo[]` |
++| `get-pod-details` | main → renderer | `contextName, namespace, podName` | `PodDetails \| null` |
+ | `list-files` | main → renderer | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls`/`find`/`busybox`, Windows: `cmd /c dir` |
+ | `show-save-dialog` | main → renderer | `defaultName` | `string \| null` |
+ | `download-file` | main → renderer | `contextName, namespace, podName, containerName?, sourcePath, destPath` | `void` ← Linux: `cat`, Windows: `cmd /c type` |
+@@ -218,6 +220,7 @@ The `KubernetesService` provides a clean interface for all Kubernetes operations
+ const contexts = await KubernetesService.getContexts();
+ const namespaces = await KubernetesService.getNamespaces(contextName);
+ const pods = await KubernetesService.getPods(contextName, namespace);
++const podDetails = await KubernetesService.getPodDetails(contextName, namespace, podName);
+ const files = await KubernetesService.listFiles(contextName, namespace, podName, containerName, dirPath);
+ await KubernetesService.downloadFile(contextName, namespace, podName, containerName, sourcePath, defaultFileName);
+ ```
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index 7226a55..dd00cd9 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -188,6 +188,7 @@ Renderer code never executes kubectl directly; it only communicates with the pre
+ - Renderer-side access to the Electron bridge is routed through a shared interface with a safe fallback, preventing startup crashes when the bridge is unavailable in non-Electron contexts.
+ - Shared type definitions now centralize the preload contract to keep the IPC surface consistent across the service layer and the legacy API helpers.
+ - Pods with more than one container expose a `ContainerSelector` dropdown (`features/containers/`); the first container is selected automatically on pod selection, and switching containers resets the file browser to the container's root directory. The `-c`/`--container` flag plumbing in `electron/kubernetes.ts` and the container-name validation already existed and required no changes — only the renderer-side selection state (`selectedContainer` in `kubeStore.ts`) was added.
++- An info button in the file explorer's breadcrumb bar opens a `PodDetailsOverlay` (`features/pods/`) showing the selected pod's status, node, pod IP, creation time, controller ("managed by"), and per-container image/ready/restart-count details. Unlike the rest of the Kubernetes state, pod details are fetched on demand — only when the overlay is opened — via a dedicated `get-pod-details` IPC channel (`getPodDetails` in `electron/kubernetes.ts`, one `kubectl get pod <name> -o json` call), rather than being folded into the `get-pods` list payload every pod list load would otherwise carry. The fetch/loading/error state lives in a standalone `usePodDetails` hook rather than `kubeStore.ts`, since it is transient UI-only state with a single consumer.
+ 
+ ## Performance Optimizations
+ 
+diff --git a/electron/kubernetes.test.ts b/electron/kubernetes.test.ts
+index e00e573..be83ba0 100644
+--- a/electron/kubernetes.test.ts
++++ b/electron/kubernetes.test.ts
+@@ -55,7 +55,7 @@ vi.mock("path", () => ({
+   },
+ }));
+ 
+-const { downloadFile, listFiles } = await import("./kubernetes");
++const { downloadFile, listFiles, getPodDetails } = await import("./kubernetes");
+ 
+ describe("resolveKubectlCommand", () => {
+   beforeEach(() => {
+@@ -515,3 +515,87 @@ describe("listFiles", () => {
+     );
+   });
+ });
++
++// ── getPodDetails ──────────────────────────────────────────────────────────
++
++const POD_JSON = {
++  metadata: {
++    name: POD,
++    namespace: NAMESPACE,
++    creationTimestamp: "2026-08-01T10:00:00Z",
++    ownerReferences: [{ kind: "ReplicaSet", name: "authentication-service-65f4d88684" }],
++  },
++  spec: {
++    nodeName: "worker-2",
++    containers: [
++      { name: CONTAINER, image: "auth-service:1.4.2" },
++      { name: "sidecar", image: "envoy:1.28" },
++    ],
++  },
++  status: {
++    phase: "Running",
++    podIP: "10.0.4.12",
++    startTime: "2026-08-01T10:00:05Z",
++    containerStatuses: [
++      { name: CONTAINER, ready: true, restartCount: 0, state: { running: {} } },
++      {
++        name: "sidecar",
++        ready: false,
++        restartCount: 3,
++        state: { waiting: { reason: "CrashLoopBackOff" } },
++      },
++    ],
++  },
++};
++
++describe("getPodDetails", () => {
++  beforeEach(() => {
++    spawnSyncMock.mockReset();
++  });
++
++  it("maps pod, node, and container fields from the raw kubectl JSON", () => {
++    spawnSyncMock.mockReturnValue(kubectlResult(0, JSON.stringify(POD_JSON)));
++
++    const details = getPodDetails(CONTEXT, NAMESPACE, POD);
++
++    expect(details.name).toBe(POD);
++    expect(details.namespace).toBe(NAMESPACE);
++    expect(details.status).toBe("Running");
++    expect(details.node).toBe("worker-2");
++    expect(details.podIP).toBe("10.0.4.12");
++    expect(details.createdAt).toBe("2026-08-01T10:00:00Z");
++    expect(details.managedBy).toBe("ReplicaSet/authentication-service-65f4d88684");
++    expect(spawnSyncMock).toHaveBeenCalledWith(
++      expect.any(String),
++      expect.arrayContaining(["get", "pod", POD, "-o", "json"]),
++      expect.any(Object)
++    );
++  });
++
++  it("maps per-container ready state, restart counts, and human-readable state", () => {
++    spawnSyncMock.mockReturnValue(kubectlResult(0, JSON.stringify(POD_JSON)));
++
++    const details = getPodDetails(CONTEXT, NAMESPACE, POD);
++
++    expect(details.containers).toHaveLength(2);
++    expect(details.containers[0]).toEqual({
++      name: CONTAINER,
++      image: "auth-service:1.4.2",
++      ready: true,
++      restartCount: 0,
++      state: "Running",
++    });
++    expect(details.containers[1]).toEqual({
++      name: "sidecar",
++      image: "envoy:1.28",
++      ready: false,
++      restartCount: 3,
++      state: "Waiting: CrashLoopBackOff",
++    });
++  });
++
++  it("rejects a malformed pod name before invoking kubectl", () => {
++    expect(() => getPodDetails(CONTEXT, NAMESPACE, "bad pod name")).toThrow();
++    expect(spawnSyncMock).not.toHaveBeenCalled();
++  });
++});
+diff --git a/electron/kubernetes.ts b/electron/kubernetes.ts
+index ba63118..df7b0ef 100644
+--- a/electron/kubernetes.ts
++++ b/electron/kubernetes.ts
+@@ -42,6 +42,26 @@ export interface PodInfo {
+   containers: string[];
+ }
+ 
++export interface PodContainerDetail {
++  name: string;
++  image: string;
++  ready: boolean;
++  restartCount: number;
++  state: string;
++}
++
++export interface PodDetails {
++  name: string;
++  namespace: string;
++  status: string;
++  node: string | null;
++  podIP: string | null;
++  createdAt: string | null;
++  startedAt: string | null;
++  managedBy: string | null;
++  containers: PodContainerDetail[];
++}
++
+ export interface FileEntry {
+   name: string;
+   path: string;
+@@ -147,6 +167,93 @@ export function getPods(
+   return pods;
+ }
+ 
++/** Human-readable label for a container's current lifecycle state. */
++function describeContainerState(
++  state?: {
++    running?: unknown;
++    waiting?: { reason?: string };
++    terminated?: { reason?: string };
++  }
++): string {
++  if (!state) return "Unknown";
++  if (state.running) return "Running";
++  if (state.waiting) return state.waiting.reason ? `Waiting: ${state.waiting.reason}` : "Waiting";
++  if (state.terminated) return state.terminated.reason ? `Terminated: ${state.terminated.reason}` : "Terminated";
++  return "Unknown";
++}
++
++export function getPodDetails(
++  contextName: string,
++  namespace: string,
++  podName: string
++): PodDetails {
++  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
++    allowUppercase: true,
++  });
++  const safeNamespace = validateKubernetesIdentifier(namespace, "Namespace");
++  const safePodName = validateKubernetesIdentifier(podName, "Pod name");
++  log(`getPodDetails: context="${safeContextName}" ns="${safeNamespace}" pod="${safePodName}"`);
++
++  const output = runKubectl([
++    "--context", safeContextName,
++    "-n", safeNamespace,
++    "get", "pod", safePodName,
++    "-o", "json",
++  ]);
++  const pod = JSON.parse(output) as {
++    metadata?: {
++      name?: string;
++      namespace?: string;
++      creationTimestamp?: string;
++      ownerReferences?: { kind: string; name: string }[];
++    };
++    spec?: { nodeName?: string; containers?: { name: string; image?: string }[] };
++    status?: {
++      phase?: string;
++      podIP?: string;
++      startTime?: string;
++      containerStatuses?: {
++        name: string;
++        ready?: boolean;
++        restartCount?: number;
++        state?: { running?: unknown; waiting?: { reason?: string }; terminated?: { reason?: string } };
++      }[];
++    };
++  };
++
++  const statusByContainer = new Map(
++    (pod.status?.containerStatuses || []).map((cs) => [cs.name, cs])
++  );
++
++  const containers: PodContainerDetail[] = (pod.spec?.containers || []).map((c) => {
++    const containerStatus = statusByContainer.get(c.name);
++    return {
++      name: c.name,
++      image: c.image || "",
++      ready: containerStatus?.ready ?? false,
++      restartCount: containerStatus?.restartCount ?? 0,
++      state: describeContainerState(containerStatus?.state),
++    };
++  });
++
++  const ownerRef = (pod.metadata?.ownerReferences || [])[0];
++
++  const details: PodDetails = {
++    name: pod.metadata?.name || safePodName,
++    namespace: pod.metadata?.namespace || safeNamespace,
++    status: pod.status?.phase || "Unknown",
++    node: pod.spec?.nodeName || null,
++    podIP: pod.status?.podIP || null,
++    createdAt: pod.metadata?.creationTimestamp || null,
++    startedAt: pod.status?.startTime || null,
++    managedBy: ownerRef ? `${ownerRef.kind}/${ownerRef.name}` : null,
++    containers,
++  };
++
++  log(`getPodDetails: resolved ${containers.length} container(s) for pod="${safePodName}"`);
++  return details;
++}
++
+ // ── File listing via kubectl exec ──────────────────────────────────────────
+ //
+ // Tries Linux tooling first (ls, find, busybox) for Linux containers, then
+diff --git a/electron/main.ts b/electron/main.ts
+index c756fd6..f02dca1 100644
+--- a/electron/main.ts
++++ b/electron/main.ts
+@@ -6,6 +6,7 @@ import {
+   getContexts,
+   getNamespaces,
+   getPods,
++  getPodDetails,
+   listFiles,
+   downloadFile,
+ } from "./kubernetes";
+@@ -109,6 +110,13 @@ function registerIpcHandlers(): void {
+     }
+   );
+ 
++  ipcMain.handle(
++    "get-pod-details",
++    async (_event, contextName: string, namespace: string, podName: string) => {
++      return getPodDetails(contextName, namespace, podName);
++    }
++  );
++
+   ipcMain.handle(
+     "list-files",
+     async (
+diff --git a/electron/preload.ts b/electron/preload.ts
+index da79491..8c93f78 100644
+--- a/electron/preload.ts
++++ b/electron/preload.ts
+@@ -1,5 +1,5 @@
+ import { contextBridge, ipcRenderer } from "electron";
+-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../src/shared/types/kubernetes";
++import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from "../src/shared/types/kubernetes";
+ 
+ const electronAPI = {
+   getContexts: (): Promise<ContextInfo[]> =>
+@@ -11,6 +11,13 @@ const electronAPI = {
+   getPods: (contextName: string, namespace: string): Promise<PodInfo[]> =>
+     ipcRenderer.invoke("get-pods", contextName, namespace),
+ 
++  getPodDetails: (
++    contextName: string,
++    namespace: string,
++    podName: string
++  ): Promise<PodDetails | null> =>
++    ipcRenderer.invoke("get-pod-details", contextName, namespace, podName),
++
+   listFiles: (
+     contextName: string,
+     namespace: string,
+diff --git a/src/App.tsx b/src/App.tsx
+index 9a9f00d..3538d25 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -7,9 +7,11 @@ import { FileExplorer } from "./features/filesystem/components/FileExplorer";
+ import { ErrorBoundary } from "./features/ui/components/ErrorBoundary";
+ import { ErrorDialog } from "./features/ui/components/ErrorDialog";
+ import { ThemeSelector } from "./features/ui/components/ThemeSelector";
++import { PodDetailsOverlay } from "./features/pods/components/PodDetailsOverlay";
+ import { useContexts } from "./features/contexts/hooks/useContexts";
+ import { useNamespaces } from "./features/namespaces/hooks/useNamespaces";
+ import { usePods } from "./features/pods/hooks/usePods";
++import { usePodDetails } from "./features/pods/hooks/usePodDetails";
+ import { useContainers } from "./features/containers/hooks/useContainers";
+ import { useFileSystem } from "./features/filesystem/hooks/useFileSystem";
+ import { useTheme } from "./features/ui/hooks/useTheme";
+@@ -31,6 +33,7 @@ function App() {
+   const ns = useNamespaces();
+   const pods = usePods();
+   const containers = useContainers();
++  const podDetails = usePodDetails();
+   const fs = useFileSystem();
+   const { globalError, clearGlobalError } = useKubeStore();
+ 
+@@ -95,6 +98,12 @@ function App() {
+     [handleNavigate]
+   );
+ 
++  const handleShowPodInfo = useCallback(() => {
++    if (ctx.selected && ns.selected && pods.selected) {
++      podDetails.open(ctx.selected, ns.selected, pods.selected.name);
++    }
++  }, [ctx.selected, ns.selected, pods.selected, podDetails.open]);
++
+   const dismissError = useCallback(() => {
+     clearGlobalError();
+     ctxSetError();
+@@ -222,12 +231,21 @@ function App() {
+               onNavigate={handleNavigate}
+               onBack={handleBack}
+               onRefresh={fsRefresh}
++              onShowPodInfo={handleShowPodInfo}
+               onError={(message) => useKubeStore.getState().setGlobalError(new AppError(ErrorCode.UNKNOWN_ERROR, message))}
+             />
+           </ErrorBoundary>
+         </main>
+       </div>
+ 
++      <PodDetailsOverlay
++        isOpen={podDetails.isOpen}
++        podName={pods.selected?.name ?? null}
++        details={podDetails.details}
++        loading={podDetails.loading}
++        error={podDetails.error}
++        onClose={podDetails.close}
++      />
+       <ErrorDialog message={globalError?.message || ''} onClose={dismissError} />
+     </div>
+   );
+diff --git a/src/features/filesystem/components/FileExplorer.test.tsx b/src/features/filesystem/components/FileExplorer.test.tsx
+index f6aa652..8a652c1 100644
+--- a/src/features/filesystem/components/FileExplorer.test.tsx
++++ b/src/features/filesystem/components/FileExplorer.test.tsx
+@@ -22,6 +22,7 @@ const defaultProps = {
+   onNavigate: vi.fn(),
+   onBack: vi.fn(),
+   onRefresh: vi.fn(),
++  onShowPodInfo: vi.fn(),
+   onError: vi.fn(),
+ };
+ 
+@@ -182,4 +183,11 @@ describe("FileExplorer", () => {
+     render(<FileExplorer {...defaultProps} loading={true} />);
+     expect(screen.getByTitle("Refreshing…")).toBeDisabled();
+   });
++
++  it("calls onShowPodInfo when the pod details button is clicked", () => {
++    const onShowPodInfo = vi.fn();
++    render(<FileExplorer {...defaultProps} onShowPodInfo={onShowPodInfo} />);
++    fireEvent.click(screen.getByTitle("Pod details"));
++    expect(onShowPodInfo).toHaveBeenCalledTimes(1);
++  });
+ });
+diff --git a/src/features/filesystem/components/FileExplorer.tsx b/src/features/filesystem/components/FileExplorer.tsx
+index b582e5b..79e93a2 100644
+--- a/src/features/filesystem/components/FileExplorer.tsx
++++ b/src/features/filesystem/components/FileExplorer.tsx
+@@ -17,6 +17,7 @@ interface FileExplorerProps {
+   onNavigate: (dirPath: string) => void;
+   onBack: (dirPath: string) => void;
+   onRefresh: () => void;
++  onShowPodInfo: () => void;
+   onError: (message: string) => void;
+ }
+ 
+@@ -32,6 +33,7 @@ export const FileExplorer = memo(function FileExplorer({
+   onNavigate,
+   onBack,
+   onRefresh,
++  onShowPodInfo,
+   onError,
+ }: FileExplorerProps) {
+   const [downloading, setDownloading] = useState<string | null>(null);
+@@ -140,7 +142,19 @@ export const FileExplorer = memo(function FileExplorer({
+           ))}
+         </div>
+ 
+-        <RefreshButton onClick={onRefresh} loading={loading} />
++        <div className="flex items-center gap-1 shrink-0">
++          <button
++            onClick={onShowPodInfo}
++            className="p-1 rounded hover:bg-k8s-surface/50 transition-colors"
++            title="Pod details"
++            aria-label="Pod details"
++          >
++            <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
++            </svg>
++          </button>
++          <RefreshButton onClick={onRefresh} loading={loading} />
++        </div>
+       </div>
+ 
+       {/* File list */}
+diff --git a/src/features/pods/components/PodDetailsOverlay.test.tsx b/src/features/pods/components/PodDetailsOverlay.test.tsx
+new file mode 100644
+index 0000000..8291008
+--- /dev/null
++++ b/src/features/pods/components/PodDetailsOverlay.test.tsx
+@@ -0,0 +1,115 @@
++import { describe, it, expect, vi } from "vitest";
++import { render, screen, fireEvent } from "@testing-library/react";
++import { PodDetailsOverlay } from "./PodDetailsOverlay";
++import type { PodDetails } from "../../../shared/types/kubernetes";
++
++const sampleDetails: PodDetails = {
++  name: "nginx-abc",
++  namespace: "default",
++  status: "Running",
++  node: "worker-1",
++  podIP: "10.0.0.5",
++  createdAt: "2026-08-01T10:00:00Z",
++  startedAt: "2026-08-01T10:00:05Z",
++  managedBy: "Deployment/nginx",
++  containers: [
++    { name: "nginx", image: "nginx:1.25", ready: true, restartCount: 0, state: "Running" },
++    { name: "sidecar", image: "envoy:1.28", ready: false, restartCount: 3, state: "Waiting: CrashLoopBackOff" },
++  ],
++};
++
++describe("PodDetailsOverlay", () => {
++  it("renders nothing when closed", () => {
++    const { container } = render(
++      <PodDetailsOverlay
++        isOpen={false}
++        podName="nginx-abc"
++        details={null}
++        loading={false}
++        error={null}
++        onClose={vi.fn()}
++      />
++    );
++    expect(container).toBeEmptyDOMElement();
++  });
++
++  it("shows a loading state while fetching", () => {
++    render(
++      <PodDetailsOverlay
++        isOpen={true}
++        podName="nginx-abc"
++        details={null}
++        loading={true}
++        error={null}
++        onClose={vi.fn()}
++      />
++    );
++    expect(screen.getByText("Loading pod details…")).toBeInTheDocument();
++  });
++
++  it("shows an error message when the fetch fails", () => {
++    render(
++      <PodDetailsOverlay
++        isOpen={true}
++        podName="nginx-abc"
++        details={null}
++        loading={false}
++        error="kubectl failed: boom"
++        onClose={vi.fn()}
++      />
++    );
++    expect(screen.getByText("kubectl failed: boom")).toBeInTheDocument();
++  });
++
++  it("renders pod metadata and containers", () => {
++    render(
++      <PodDetailsOverlay
++        isOpen={true}
++        podName="nginx-abc"
++        details={sampleDetails}
++        loading={false}
++        error={null}
++        onClose={vi.fn()}
++      />
++    );
++
++    expect(screen.getByText("worker-1")).toBeInTheDocument();
++    expect(screen.getByText("10.0.0.5")).toBeInTheDocument();
++    expect(screen.getByText("Deployment/nginx")).toBeInTheDocument();
++    expect(screen.getByText("nginx:1.25")).toBeInTheDocument();
++    expect(screen.getByText("Waiting: CrashLoopBackOff")).toBeInTheDocument();
++    expect(screen.getByText("3 restarts")).toBeInTheDocument();
++  });
++
++  it("calls onClose when the Close button is clicked", () => {
++    const onClose = vi.fn();
++    render(
++      <PodDetailsOverlay
++        isOpen={true}
++        podName="nginx-abc"
++        details={sampleDetails}
++        loading={false}
++        error={null}
++        onClose={onClose}
++      />
++    );
++    fireEvent.click(screen.getByText("Close"));
++    expect(onClose).toHaveBeenCalledOnce();
++  });
++
++  it("calls onClose when Escape is pressed", () => {
++    const onClose = vi.fn();
++    render(
++      <PodDetailsOverlay
++        isOpen={true}
++        podName="nginx-abc"
++        details={sampleDetails}
++        loading={false}
++        error={null}
++        onClose={onClose}
++      />
++    );
++    fireEvent.keyDown(document, { key: "Escape" });
++    expect(onClose).toHaveBeenCalledOnce();
++  });
++});
+diff --git a/src/features/pods/components/PodDetailsOverlay.tsx b/src/features/pods/components/PodDetailsOverlay.tsx
+new file mode 100644
+index 0000000..47086a4
+--- /dev/null
++++ b/src/features/pods/components/PodDetailsOverlay.tsx
+@@ -0,0 +1,158 @@
++import { useEffect } from "react";
++import type { PodDetails } from "../../../shared/types/kubernetes";
++
++interface PodDetailsOverlayProps {
++  isOpen: boolean;
++  podName: string | null;
++  details: PodDetails | null;
++  loading: boolean;
++  error: string | null;
++  onClose: () => void;
++}
++
++function formatTimestamp(value: string | null): string {
++  if (!value) return "Unknown";
++  const date = new Date(value);
++  if (Number.isNaN(date.getTime())) return value;
++  return date.toLocaleString();
++}
++
++function statusBadgeClasses(status: string): string {
++  switch (status) {
++    case "Running":
++      return "bg-green-500/15 text-green-400";
++    case "Pending":
++      return "bg-yellow-500/15 text-yellow-400";
++    default:
++      return "bg-red-500/15 text-red-400";
++  }
++}
++
++export function PodDetailsOverlay({
++  isOpen,
++  podName,
++  details,
++  loading,
++  error,
++  onClose,
++}: PodDetailsOverlayProps) {
++  useEffect(() => {
++    if (!isOpen) return;
++    const handleKey = (e: KeyboardEvent) => {
++      if (e.key === "Escape") onClose();
++    };
++    window.addEventListener("keydown", handleKey);
++    return () => window.removeEventListener("keydown", handleKey);
++  }, [isOpen, onClose]);
++
++  if (!isOpen) return null;
++
++  return (
++    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
++      <div
++        role="dialog"
++        aria-modal="true"
++        className="bg-k8s-surface/90 backdrop-blur-xl border border-k8s-border rounded-xl shadow-2xl shadow-black/10 w-full max-w-lg mx-4 overflow-hidden"
++      >
++        <div className="flex items-center gap-3 px-6 py-4 border-b border-k8s-border/50 bg-gradient-to-r from-k8s-link/5 to-transparent">
++          <svg className="w-5 h-5 text-k8s-link shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
++          </svg>
++          <h2 className="text-lg font-semibold text-k8s-text truncate">
++            {details?.name ?? podName ?? "Pod details"}
++          </h2>
++        </div>
++
++        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto space-y-4">
++          {loading ? (
++            <div className="flex items-center gap-2.5 text-sm text-k8s-muted py-4">
++              <div className="w-4 h-4 border-2 border-k8s-link border-t-transparent rounded-full animate-spin" />
++              Loading pod details…
++            </div>
++          ) : error ? (
++            <p className="text-sm text-red-400">{error}</p>
++          ) : details ? (
++            <>
++              <dl className="grid grid-cols-2 gap-3 text-sm">
++                <div>
++                  <dt className="text-k8s-muted text-xs uppercase tracking-wider">Status</dt>
++                  <dd className="mt-0.5">
++                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBadgeClasses(details.status)}`}>
++                      {details.status}
++                    </span>
++                  </dd>
++                </div>
++                <div>
++                  <dt className="text-k8s-muted text-xs uppercase tracking-wider">Namespace</dt>
++                  <dd className="mt-0.5 text-k8s-text truncate">{details.namespace}</dd>
++                </div>
++                <div>
++                  <dt className="text-k8s-muted text-xs uppercase tracking-wider">Node</dt>
++                  <dd className="mt-0.5 text-k8s-text truncate">{details.node ?? "Unknown"}</dd>
++                </div>
++                <div>
++                  <dt className="text-k8s-muted text-xs uppercase tracking-wider">Pod IP</dt>
++                  <dd className="mt-0.5 text-k8s-text truncate">{details.podIP ?? "Unknown"}</dd>
++                </div>
++                <div>
++                  <dt className="text-k8s-muted text-xs uppercase tracking-wider">Created</dt>
++                  <dd className="mt-0.5 text-k8s-text truncate">{formatTimestamp(details.createdAt)}</dd>
++                </div>
++                <div>
++                  <dt className="text-k8s-muted text-xs uppercase tracking-wider">Managed by</dt>
++                  <dd className="mt-0.5 text-k8s-text truncate">{details.managedBy ?? "None"}</dd>
++                </div>
++              </dl>
++
++              <div>
++                <h3 className="text-xs font-medium text-k8s-muted uppercase tracking-wider mb-2">
++                  Containers
++                </h3>
++                <div className="border border-k8s-border/60 rounded-lg divide-y divide-k8s-border/30 overflow-hidden">
++                  {details.containers.map((container) => (
++                    <div
++                      key={container.name}
++                      className="px-3 py-2.5 text-sm flex items-center justify-between gap-3"
++                    >
++                      <div className="min-w-0">
++                        <p className="text-k8s-text font-medium truncate">{container.name}</p>
++                        <p className="text-k8s-muted text-xs truncate">{container.image}</p>
++                      </div>
++                      <div className="shrink-0 text-right space-y-1">
++                        <span
++                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
++                            container.ready
++                              ? "bg-green-500/15 text-green-400"
++                              : "bg-yellow-500/15 text-yellow-400"
++                          }`}
++                        >
++                          {container.ready ? "Ready" : container.state}
++                        </span>
++                        {container.restartCount > 0 && (
++                          <p className="text-k8s-muted text-xs">
++                            {container.restartCount} restart{container.restartCount !== 1 ? "s" : ""}
++                          </p>
++                        )}
++                      </div>
++                    </div>
++                  ))}
++                </div>
++              </div>
++            </>
++          ) : (
++            <p className="text-sm text-k8s-muted">No details available for this pod.</p>
++          )}
++        </div>
++
++        <div className="px-6 py-3 border-t border-k8s-border/50 flex justify-end bg-gradient-to-r from-transparent to-k8s-link/5">
++          <button
++            onClick={onClose}
++            className="px-5 py-2 bg-k8s-link/10 hover:bg-k8s-link/20 text-k8s-link rounded-lg text-sm font-medium transition-all hover-lift focus:outline-none focus:ring-2 focus:ring-k8s-link/40"
++          >
++            Close
++          </button>
++        </div>
++      </div>
++    </div>
++  );
++}
+diff --git a/src/features/pods/hooks/usePodDetails.test.ts b/src/features/pods/hooks/usePodDetails.test.ts
+new file mode 100644
+index 0000000..d7d61ef
+--- /dev/null
++++ b/src/features/pods/hooks/usePodDetails.test.ts
+@@ -0,0 +1,87 @@
++import { describe, it, expect, vi, beforeEach } from "vitest";
++import { renderHook, act, waitFor } from "@testing-library/react";
++import { usePodDetails } from "./usePodDetails";
++import { KubernetesService } from "../../../services/kubernetesService";
++import type { PodDetails } from "../../../shared/types/kubernetes";
++
++vi.mock("../../../services/kubernetesService", () => ({
++  KubernetesService: {
++    getPodDetails: vi.fn(),
++  },
++}));
++
++const sampleDetails: PodDetails = {
++  name: "nginx-abc",
++  namespace: "default",
++  status: "Running",
++  node: "worker-1",
++  podIP: "10.0.0.5",
++  createdAt: "2026-08-01T10:00:00Z",
++  startedAt: "2026-08-01T10:00:05Z",
++  managedBy: "Deployment/nginx",
++  containers: [
++    { name: "nginx", image: "nginx:1.25", ready: true, restartCount: 0, state: "Running" },
++  ],
++};
++
++describe("usePodDetails", () => {
++  beforeEach(() => {
++    vi.mocked(KubernetesService.getPodDetails).mockReset();
++  });
++
++  it("starts closed with no details", () => {
++    const { result } = renderHook(() => usePodDetails());
++
++    expect(result.current.isOpen).toBe(false);
++    expect(result.current.details).toBeNull();
++    expect(result.current.error).toBeNull();
++  });
++
++  it("opens, loads, and stores the fetched pod details", async () => {
++    vi.mocked(KubernetesService.getPodDetails).mockResolvedValue(sampleDetails);
++    const { result } = renderHook(() => usePodDetails());
++
++    act(() => {
++      result.current.open("prod-cluster", "default", "nginx-abc");
++    });
++
++    expect(result.current.isOpen).toBe(true);
++
++    await waitFor(() => expect(result.current.loading).toBe(false));
++
++    expect(KubernetesService.getPodDetails).toHaveBeenCalledWith(
++      "prod-cluster",
++      "default",
++      "nginx-abc"
++    );
++    expect(result.current.details).toEqual(sampleDetails);
++    expect(result.current.error).toBeNull();
++  });
++
++  it("stores an error message and clears details when the fetch fails", async () => {
++    vi.mocked(KubernetesService.getPodDetails).mockRejectedValue(new Error("kubectl failed: boom"));
++    const { result } = renderHook(() => usePodDetails());
++
++    act(() => {
++      result.current.open("prod-cluster", "default", "nginx-abc");
++    });
++
++    await waitFor(() => expect(result.current.loading).toBe(false));
++
++    expect(result.current.details).toBeNull();
++    expect(result.current.error).toContain("boom");
++  });
++
++  it("close hides the overlay", () => {
++    const { result } = renderHook(() => usePodDetails());
++
++    act(() => {
++      result.current.open("prod-cluster", "default", "nginx-abc");
++    });
++    act(() => {
++      result.current.close();
++    });
++
++    expect(result.current.isOpen).toBe(false);
++  });
++});
+diff --git a/src/features/pods/hooks/usePodDetails.ts b/src/features/pods/hooks/usePodDetails.ts
+new file mode 100644
+index 0000000..3926b8a
+--- /dev/null
++++ b/src/features/pods/hooks/usePodDetails.ts
+@@ -0,0 +1,39 @@
++/**
++ * usePodDetails Hook
++ *
++ * Fetches detailed information about a single pod on demand (triggered by
++ * the pod details overlay) rather than eagerly for every pod in the list.
++ */
++
++import { useCallback, useState } from 'react';
++import { KubernetesService } from '../../../services/kubernetesService';
++import type { PodDetails } from '../../../shared/types/kubernetes';
++import { AppError } from '../../../shared/types/errors';
++
++export function usePodDetails() {
++  const [isOpen, setIsOpen] = useState(false);
++  const [details, setDetails] = useState<PodDetails | null>(null);
++  const [loading, setLoading] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++
++  const open = useCallback(async (contextName: string, namespace: string, podName: string) => {
++    setIsOpen(true);
++    setLoading(true);
++    setError(null);
++    try {
++      const result = await KubernetesService.getPodDetails(contextName, namespace, podName);
++      setDetails(result);
++    } catch (err) {
++      setError(AppError.fromError(err).message);
++      setDetails(null);
++    } finally {
++      setLoading(false);
++    }
++  }, []);
++
++  const close = useCallback(() => {
++    setIsOpen(false);
++  }, []);
++
++  return { isOpen, details, loading, error, open, close };
++}
+diff --git a/src/services/kubernetesService.test.ts b/src/services/kubernetesService.test.ts
+index a50464d..eeecc62 100644
+--- a/src/services/kubernetesService.test.ts
++++ b/src/services/kubernetesService.test.ts
+@@ -9,6 +9,7 @@ describe("getElectronApi", () => {
+     expect(await api?.getContexts()).toEqual([]);
+     expect(await api?.getNamespaces("default")).toEqual([]);
+     expect(await api?.getPods("ctx", "default")).toEqual([]);
++    expect(await api?.getPodDetails("ctx", "default", "pod")).toBeNull();
+     expect(await api?.listFiles("ctx", "default", "pod", null, "/")).toEqual([]);
+     expect(await api?.showSaveDialog("file.txt")).toBeNull();
+   });
+diff --git a/src/services/kubernetesService.ts b/src/services/kubernetesService.ts
+index 73609e1..09d05fb 100644
+--- a/src/services/kubernetesService.ts
++++ b/src/services/kubernetesService.ts
+@@ -6,7 +6,7 @@
+  * interface for the application to interact with Kubernetes resources.
+  */
+ 
+-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from '../shared/types/kubernetes';
++import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from '../shared/types/kubernetes';
+ import type { ElectronApiBridge } from '../shared/types/api';
+ import { AppError } from '../shared/types/errors';
+ import { sanitizeContainerPath, validateKubernetesIdentifier } from '../utils/kubeconfig';
+@@ -25,6 +25,7 @@ export function getElectronApi(): ElectronApiBridge {
+       getContexts: async () => [],
+       getNamespaces: async () => [],
+       getPods: async () => [],
++      getPodDetails: async () => null,
+       listFiles: async () => [],
+       showSaveDialog: async () => null,
+       downloadFile: async () => undefined,
+@@ -105,6 +106,33 @@ export class KubernetesService {
+     }
+   }
+ 
++  /**
++   * Fetches detailed information about a single pod (node, IP, containers,
++   * restart counts, etc.) for display in the pod details overlay
++   *
++   * @param {string} contextName - The name of the Kubernetes context
++   * @param {string} namespace - The namespace containing the pod
++   * @param {string} podName - The name of the pod
++   * @returns {Promise<PodDetails | null>} Detailed pod information
++   * @throws {AppError} If the pod is not found or kubectl execution fails
++   */
++  static async getPodDetails(
++    contextName: string,
++    namespace: string,
++    podName: string
++  ): Promise<PodDetails | null> {
++    try {
++      const safeContextName = validateKubernetesIdentifier(contextName, 'Context name', {
++        allowUppercase: true,
++      });
++      const safeNamespace = validateKubernetesIdentifier(namespace, 'Namespace');
++      const safePodName = validateKubernetesIdentifier(podName, 'Pod name');
++      return await this.api.getPodDetails(safeContextName, safeNamespace, safePodName);
++    } catch (error) {
++      throw AppError.fromError(error);
++    }
++  }
++
+   /**
+    * Lists files in a pod's container
+    * 
+diff --git a/src/shared/types/api.ts b/src/shared/types/api.ts
+index f9acc8e..4918ce4 100644
+--- a/src/shared/types/api.ts
++++ b/src/shared/types/api.ts
+@@ -1,4 +1,4 @@
+-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "./kubernetes";
++import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from "./kubernetes";
+ 
+ export interface ApiResponse<T> {
+   data: T;
+@@ -17,6 +17,11 @@ export interface ElectronApiBridge {
+   getContexts: () => Promise<ContextInfo[]>;
+   getNamespaces: (contextName: string) => Promise<NamespaceInfo[]>;
+   getPods: (contextName: string, namespace: string) => Promise<PodInfo[]>;
++  getPodDetails: (
++    contextName: string,
++    namespace: string,
++    podName: string
++  ) => Promise<PodDetails | null>;
+   listFiles: (
+     contextName: string,
+     namespace: string,
+diff --git a/src/shared/types/kubernetes.ts b/src/shared/types/kubernetes.ts
+index 69187e2..1d7d0a0 100644
+--- a/src/shared/types/kubernetes.ts
++++ b/src/shared/types/kubernetes.ts
+@@ -23,6 +23,26 @@ export interface PodInfo {
+ 
+ export type PodPhase = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
+ 
++export interface PodContainerDetail {
++  name: string;
++  image: string;
++  ready: boolean;
++  restartCount: number;
++  state: string;
++}
++
++export interface PodDetails {
++  name: string;
++  namespace: string;
++  status: PodPhase;
++  node: string | null;
++  podIP: string | null;
++  createdAt: string | null;
++  startedAt: string | null;
++  managedBy: string | null;
++  containers: PodContainerDetail[];
++}
++
+ export interface FileEntry {
+   name: string;
+   path: string;
+diff --git a/tasks.md b/tasks.md
+index 11ef0c1..0479a7d 100644
+--- a/tasks.md
++++ b/tasks.md
+@@ -5,6 +5,7 @@
+ ## In Progress
+ 
+ ## Done
++- [x] As a user i want to see more information about the selected pod. Introduce a overlay window that can be triggered by a information button and that shows the main information about the selected pod.
+ - [x] As a user i want to select the container as well if there are multiple containers in a pod.
+ - [x] Add tar-based download fallback (like `kubectl cp`) for minimal Linux containers without cat/cmd
+ - [x] List files in minimal Linux containers via additional fallbacks (find, busybox) and document that distroless/scratch images (e.g. CoreDNS) have no tools to exec
+-- 
+2.51.1.windows.1
+

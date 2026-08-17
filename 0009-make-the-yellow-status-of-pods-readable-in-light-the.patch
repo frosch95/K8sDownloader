@@ -1,0 +1,185 @@
+From 61aaef6c0d1219de073fd60eb73341f5a2aa540d Mon Sep 17 00:00:00 2001
+From: "Billmann, Andreas" <Andreas.Billmann@vector.com>
+Date: Mon, 17 Aug 2026 15:08:57 +0200
+Subject: [PATCH 9/9] make the yellow status of pods readable in light theme
+
+---
+ README.md                                               | 2 +-
+ docs/ARCHITECTURE.md                                    | 1 +
+ src/features/pods/components/PodDetailsOverlay.test.tsx | 6 ++++--
+ src/features/pods/components/PodDetailsOverlay.tsx      | 4 ++--
+ src/features/pods/components/PodSelector.test.tsx       | 6 ++++--
+ src/features/pods/components/PodSelector.tsx            | 2 +-
+ src/features/ui/components/Badge.tsx                    | 2 +-
+ src/index.css                                           | 9 +++++++--
+ tasks.md                                                | 1 +
+ 9 files changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/README.md b/README.md
+index c1e6725..02cee7d 100644
+--- a/README.md
++++ b/README.md
+@@ -46,7 +46,7 @@
+ | 9 | **Error Dialog** | Centralized modal error display (press Esc to dismiss) |
+ | 10 | **Cross-Platform Pods** | File listing and download work on Linux (with fallbacks to `find`/`busybox` for minimal images) and Windows containers — automatic fallback |
+ | 11 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
+-| 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage. Status text colors (e.g. "Running") are theme-aware so they stay readable in every theme, not just dark ones |
++| 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage. Status text colors (e.g. "Running", "Pending") are theme-aware so they stay readable in every theme, not just dark ones |
+ | 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
+ | 14 | **Pod Details Overlay** | An info button in the file explorer opens a resizable overlay (drag the bottom-right corner) with the selected pod's status, node, IP, creation time, controller, and per-container image/ready/restart-count details (press Esc to dismiss) |
+ | 15 | **Volume Mount Info** | Each container in the pod details overlay has a collapsible "Mounts" section listing its mount paths and classifying their source (ConfigMap / Secret / PersistentVolumeClaim / HostPath / NFS / CSI are highlighted as coming from "outside" the container image, vs. ephemeral EmptyDir/Projected/DownwardAPI volumes) |
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index fff5464..f68a041 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -194,6 +194,7 @@ Renderer code never executes kubectl directly; it only communicates with the pre
+ - Each container's mount list renders inside a native `<details>`/`<summary>` element labeled "Mounts (n)", collapsed by default, rather than a custom accordion component — native disclosure widgets give free keyboard/accessibility support and need no extra state.
+ - `PodDetailsOverlay` is resizable: a grip handle in the bottom-right corner drags the dialog's width/height (tracked in local `useState`, clamped to `UI.POD_DETAILS_WIDTH_MIN/MAX` and `..._HEIGHT_MIN/MAX` in `shared/constants`), following the same delta-from-drag-start approach as the sidebar resize in `App.tsx` but scoped locally to the component instead of lifted to app state — the size only matters while the overlay is open and has no other consumer. The dialog switched from content-sized (`max-w-lg`/`max-h-[60vh]`) to an explicit `flex flex-col` layout with a `flex-1 min-h-0 overflow-y-auto` body so the fixed pixel size still scrolls correctly at any dimension.
+ - Status/ready badges ("Running", "Ready") use a `--k8s-success` CSS variable (`text-k8s-success`/`bg-k8s-success/15`, registered in the `@theme` block in `index.css`) instead of Tailwind's fixed `green-400`/`green-500`. `green-400` (`#4ade80`) reads fine against the dark and darcula themes' near-black backgrounds but fails contrast against the light theme's pale background (`#f0f4f8`), so `:root` (light) defines `--k8s-success: #15803d` (a much darker green) while `.dark`/`.darcula` keep `#4ade80`. This mirrors how every other themed color (`k8s-link`, `k8s-muted`, etc.) is defined per-theme in `index.css` rather than hardcoding a Tailwind palette color that ignores the active theme.
++- The same problem and fix apply to "Pending"/not-ready status badges: a `--k8s-warning` CSS variable replaces the hardcoded `yellow-400`/`yellow-500`, with `:root` (light) defining `--k8s-warning: #a16207` and `.dark`/`.darcula` keeping the original `#facc15`.
+ - `CustomSelect` (`features/ui/components/`) gained an opt-in `filterable`/`filterPlaceholder` prop pair: when set, an auto-focused text input renders above the option list and filters options by a case-insensitive substring match on `label`. `ContextSelector` and `NamespaceSelector` pass `filterable` (context/namespace lists can grow long); `ThemeSelector`'s fixed four-option list leaves it off (the default), so that consumer is unaffected. The option list also gained a `max-h-60 overflow-y-auto` cap so a long (filtered or unfiltered) list no longer grows the dropdown past the viewport. The filter query resets whenever the dropdown closes, so each open starts from a clean slate.
+ 
+ ## Performance Optimizations
+diff --git a/src/features/pods/components/PodDetailsOverlay.test.tsx b/src/features/pods/components/PodDetailsOverlay.test.tsx
+index 64bbfee..d6d815e 100644
+--- a/src/features/pods/components/PodDetailsOverlay.test.tsx
++++ b/src/features/pods/components/PodDetailsOverlay.test.tsx
+@@ -121,10 +121,12 @@ describe("PodDetailsOverlay", () => {
+     expect(screen.getByText("Waiting: CrashLoopBackOff")).toBeInTheDocument();
+     expect(screen.getByText("3 restarts")).toBeInTheDocument();
+ 
+-    // Status and Ready badges use the theme-aware success color, not the
+-    // hardcoded Tailwind green that was unreadable on the light theme.
++    // Status and Ready badges use the theme-aware success color, and the
++    // not-ready sidecar badge uses the theme-aware warning color — not the
++    // hardcoded Tailwind green/yellow that were unreadable on the light theme.
+     expect(screen.getByText("Running").className).toContain("text-k8s-success");
+     expect(screen.getByText("Ready").className).toContain("text-k8s-success");
++    expect(screen.getByText("Waiting: CrashLoopBackOff").className).toContain("text-k8s-warning");
+   });
+ 
+   it("shows a collapsed 'Mounts' element for containers with mounts, and none for containers without", () => {
+diff --git a/src/features/pods/components/PodDetailsOverlay.tsx b/src/features/pods/components/PodDetailsOverlay.tsx
+index ea2f5c7..605bada 100644
+--- a/src/features/pods/components/PodDetailsOverlay.tsx
++++ b/src/features/pods/components/PodDetailsOverlay.tsx
+@@ -36,7 +36,7 @@ function statusBadgeClasses(status: string): string {
+     case "Running":
+       return "bg-k8s-success/15 text-k8s-success";
+     case "Pending":
+-      return "bg-yellow-500/15 text-yellow-400";
++      return "bg-k8s-warning/15 text-k8s-warning";
+     default:
+       return "bg-red-500/15 text-red-400";
+   }
+@@ -185,7 +185,7 @@ export function PodDetailsOverlay({
+                             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                               container.ready
+                                 ? "bg-k8s-success/15 text-k8s-success"
+-                                : "bg-yellow-500/15 text-yellow-400"
++                                : "bg-k8s-warning/15 text-k8s-warning"
+                             }`}
+                           >
+                             {container.ready ? "Ready" : container.state}
+diff --git a/src/features/pods/components/PodSelector.test.tsx b/src/features/pods/components/PodSelector.test.tsx
+index 0e0ff5b..2226131 100644
+--- a/src/features/pods/components/PodSelector.test.tsx
++++ b/src/features/pods/components/PodSelector.test.tsx
+@@ -158,10 +158,12 @@ describe("PodSelector", () => {
+     expect(screen.getByText("Pending")).toBeInTheDocument();
+     expect(screen.getByText("Failed")).toBeInTheDocument();
+ 
+-    // Uses the theme-aware success color, not the hardcoded Tailwind green
+-    // that was unreadable on the light theme.
++    // Uses the theme-aware success/warning colors, not the hardcoded
++    // Tailwind green/yellow that were unreadable on the light theme.
+     expect(runningBadges[0].className).toContain("text-k8s-success");
+     expect(runningBadges[0].className).not.toContain("text-green-400");
++    expect(screen.getByText("Pending").className).toContain("text-k8s-warning");
++    expect(screen.getByText("Pending").className).not.toContain("text-yellow-400");
+   });
+ 
+   it("highlights selected pod", () => {
+diff --git a/src/features/pods/components/PodSelector.tsx b/src/features/pods/components/PodSelector.tsx
+index fde7dd3..1b9e270 100644
+--- a/src/features/pods/components/PodSelector.tsx
++++ b/src/features/pods/components/PodSelector.tsx
+@@ -96,7 +96,7 @@ export const PodSelector = memo(function PodSelector({
+                       pod.status === "Running"
+                         ? "bg-k8s-success/15 text-k8s-success"
+                         : pod.status === "Pending"
+-                          ? "bg-yellow-500/15 text-yellow-400"
++                          ? "bg-k8s-warning/15 text-k8s-warning"
+                           : "bg-red-500/15 text-red-400"
+                     }`}
+                   >
+diff --git a/src/features/ui/components/Badge.tsx b/src/features/ui/components/Badge.tsx
+index a535fc9..44f95a4 100644
+--- a/src/features/ui/components/Badge.tsx
++++ b/src/features/ui/components/Badge.tsx
+@@ -22,7 +22,7 @@ export function Badge({
+   const variantStyles = {
+     primary: 'bg-gradient-accent/15 text-k8s-link',
+     success: 'bg-gradient-to-r from-k8s-success/15 to-k8s-success/5 text-k8s-success',
+-    warning: 'bg-gradient-to-r from-yellow-500/15 to-yellow-500/5 text-yellow-400',
++    warning: 'bg-gradient-to-r from-k8s-warning/15 to-k8s-warning/5 text-k8s-warning',
+     danger: 'bg-gradient-to-r from-red-500/15 to-red-500/5 text-red-400',
+     info: 'bg-gradient-to-r from-blue-500/15 to-blue-500/5 text-blue-400',
+     neutral: 'bg-gradient-to-r from-k8s-surface/40 to-k8s-surface/20 text-k8s-muted',
+diff --git a/src/index.css b/src/index.css
+index ddfd44b..4a6390c 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -17,6 +17,7 @@
+   --color-k8s-accent-gradient-from: var(--k8s-accent-gradient-from);
+   --color-k8s-accent-gradient-to: var(--k8s-accent-gradient-to);
+   --color-k8s-success: var(--k8s-success);
++  --color-k8s-warning: var(--k8s-warning);
+   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+ }
+ 
+@@ -39,9 +40,11 @@
+   --k8s-gradient-to: #dce4ef;
+   --k8s-accent-gradient-from: #326ce5;
+   --k8s-accent-gradient-to: #4a8af4;
+-  /* A pale Tailwind green-400 text is unreadable against this theme's light
+-     background, so the light theme gets a much darker green here. */
++  /* Pale Tailwind green-400/yellow-400 text is unreadable against this
++     theme's light background, so the light theme gets much darker
++     status colors here. */
+   --k8s-success: #15803d;
++  --k8s-warning: #b9af16;
+ }
+ 
+ .dark {
+@@ -58,6 +61,7 @@
+   --k8s-accent-gradient-from: #326ce5;
+   --k8s-accent-gradient-to: #589df6;
+   --k8s-success: #4ade80;
++  --k8s-warning: #facc15;
+ }
+ 
+ .darcula {
+@@ -74,6 +78,7 @@
+   --k8s-accent-gradient-from: #555555;
+   --k8s-accent-gradient-to: #777777;
+   --k8s-success: #4ade80;
++  --k8s-warning: #facc15;
+ }
+ 
+ /* ── Base styles ─────────────────────────────────────────────────────── */
+diff --git a/tasks.md b/tasks.md
+index 4e91d56..e0fe79b 100644
+--- a/tasks.md
++++ b/tasks.md
+@@ -5,6 +5,7 @@
+ ## In Progress
+ 
+ ## Done
++- [x] The yellow status is also unreadable in the light mode, use a darker one.
+ - [x] allow to filter the cluster list and the namespace list as well
+ - [x] The green in the status is hard to read on a light theme. Use a darker green in the light theme.
+ - [x] as a user i want to have thw mount information in a foldable element with the name Mounts.
+-- 
+2.51.1.windows.1
+
