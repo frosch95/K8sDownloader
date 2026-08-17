@@ -29,7 +29,10 @@ interface KubeState {
   selectedPod: PodInfo | null;
   podsLoading: boolean;
   podsError: AppError | null;
-  
+
+  // Container state
+  selectedContainer: string | null;
+
   // File system state
   files: FileEntry[];
   currentPath: string;
@@ -50,7 +53,9 @@ interface KubeState {
   loadPods: (contextName: string, namespace: string) => Promise<void>;
   selectPod: (pod: PodInfo) => void;
   clearPodsError: () => void;
-  
+
+  selectContainer: (containerName: string) => void;
+
   navigateTo: (
     contextName: string,
     namespace: string,
@@ -88,7 +93,9 @@ export const useKubeStore = create<KubeState>((set, get) => ({
   selectedPod: null,
   podsLoading: false,
   podsError: null,
-  
+
+  selectedContainer: null,
+
   files: [],
   currentPath: '/',
   navigationHistory: [],
@@ -127,12 +134,13 @@ export const useKubeStore = create<KubeState>((set, get) => ({
   },
   
   selectContext: (contextName) => {
-    set({ 
+    set({
       selectedContext: contextName,
       selectedNamespace: null,
       namespaces: [],
       selectedPod: null,
       pods: [],
+      selectedContainer: null,
       files: [],
       currentPath: '/',
       navigationHistory: [],
@@ -193,10 +201,11 @@ export const useKubeStore = create<KubeState>((set, get) => ({
   
   selectNamespace: (namespace) => {
     const { selectedContext } = get();
-    set({ 
+    set({
       selectedNamespace: namespace,
       selectedPod: null,
       pods: [],
+      selectedContainer: null,
       files: [],
       currentPath: '/',
       navigationHistory: [],
@@ -250,17 +259,34 @@ export const useKubeStore = create<KubeState>((set, get) => ({
   
   selectPod: (pod) => {
     const { selectedContext, selectedNamespace } = get();
-    set({ selectedPod: pod });
-    
+    const container = pod.containers.length > 0 ? pod.containers[0] : null;
+    set({ selectedPod: pod, selectedContainer: container });
+
     // Auto-navigate to root directory when pod is selected
     if (selectedContext && selectedNamespace && pod) {
-      const container = pod.containers.length > 0 ? pod.containers[0] : null;
       get().navigateTo(selectedContext, selectedNamespace, pod.name, container, '/');
     }
   },
-  
+
   clearPodsError: () => set({ podsError: null, globalError: null }),
-  
+
+  // Container actions
+  selectContainer: (containerName) => {
+    const { selectedContext, selectedNamespace, selectedPod } = get();
+    const container = containerName || null;
+    set({
+      selectedContainer: container,
+      files: [],
+      currentPath: '/',
+      navigationHistory: [],
+      navigationFuture: []
+    });
+
+    if (selectedContext && selectedNamespace && selectedPod) {
+      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, container, '/');
+    }
+  },
+
   // File system actions
   navigateTo: async (contextName, namespace, podName, containerName, dirPath) => {
     if (!contextName) {
@@ -323,10 +349,9 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     });
     
     // Reload files for the previous path
-    const { selectedContext, selectedNamespace, selectedPod } = get();
+    const { selectedContext, selectedNamespace, selectedPod, selectedContainer } = get();
     if (selectedContext && selectedNamespace && selectedPod) {
-      const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
-      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, container, previousPath);
+      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, selectedContainer, previousPath);
     }
   },
   
@@ -345,20 +370,17 @@ export const useKubeStore = create<KubeState>((set, get) => ({
     });
     
     // Reload files for the next path
-    const { selectedContext, selectedNamespace, selectedPod } = get();
+    const { selectedContext, selectedNamespace, selectedPod, selectedContainer } = get();
     if (selectedContext && selectedNamespace && selectedPod) {
-      const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
-      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, container, nextPath);
+      get().navigateTo(selectedContext, selectedNamespace, selectedPod.name, selectedContainer, nextPath);
     }
   },
-  
+
   refreshFiles: async () => {
-    const { selectedContext, selectedNamespace, selectedPod, currentPath } = get();
+    const { selectedContext, selectedNamespace, selectedPod, selectedContainer, currentPath } = get();
     if (!selectedContext || !selectedNamespace || !selectedPod) {
       return;
     }
-
-    const container = selectedPod.containers.length > 0 ? selectedPod.containers[0] : null;
 
     set({ filesLoading: true, filesError: null });
     try {
@@ -366,7 +388,7 @@ export const useKubeStore = create<KubeState>((set, get) => ({
         selectedContext,
         selectedNamespace,
         selectedPod.name,
-        container,
+        selectedContainer,
         currentPath
       );
       // Reload the current directory only — navigation history/future is untouched

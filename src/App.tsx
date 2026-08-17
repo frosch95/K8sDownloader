@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ContextSelector } from "./features/contexts/components/ContextSelector";
 import { NamespaceSelector } from "./features/namespaces/components/NamespaceSelector";
 import { PodSelector } from "./features/pods/components/PodSelector";
+import { ContainerSelector } from "./features/containers/components/ContainerSelector";
 import { FileExplorer } from "./features/filesystem/components/FileExplorer";
 import { ErrorBoundary } from "./features/ui/components/ErrorBoundary";
 import { ErrorDialog } from "./features/ui/components/ErrorDialog";
@@ -9,6 +10,7 @@ import { ThemeSelector } from "./features/ui/components/ThemeSelector";
 import { useContexts } from "./features/contexts/hooks/useContexts";
 import { useNamespaces } from "./features/namespaces/hooks/useNamespaces";
 import { usePods } from "./features/pods/hooks/usePods";
+import { useContainers } from "./features/containers/hooks/useContainers";
 import { useFileSystem } from "./features/filesystem/hooks/useFileSystem";
 import { useTheme } from "./features/ui/hooks/useTheme";
 import { useKubeStore } from "./stores/kubeStore";
@@ -28,6 +30,7 @@ function App() {
   const ctx = useContexts();
   const ns = useNamespaces();
   const pods = usePods();
+  const containers = useContainers();
   const fs = useFileSystem();
   const { globalError, clearGlobalError } = useKubeStore();
 
@@ -71,7 +74,7 @@ function App() {
       podsSetSelected(pod);
       fsReset();
       if (ctx.selected && ns.selected) {
-        const container = pod.containers.length > 0 ? pod.containers[0] : null;
+        const container = useKubeStore.getState().selectedContainer;
         fsNavigateTo(ctx.selected, ns.selected, pod.name, container, "/");
       }
     },
@@ -81,14 +84,10 @@ function App() {
   const handleNavigate = useCallback(
     (dirPath: string) => {
       if (ctx.selected && ns.selected && pods.selected) {
-        const container =
-          pods.selected.containers.length > 0
-            ? pods.selected.containers[0]
-            : null;
-        fsNavigateTo(ctx.selected, ns.selected, pods.selected.name, container, dirPath);
+        fsNavigateTo(ctx.selected, ns.selected, pods.selected.name, containers.selected, dirPath);
       }
     },
-    [ctx.selected, ns.selected, pods.selected, fsNavigateTo]
+    [ctx.selected, ns.selected, pods.selected, containers.selected, fsNavigateTo]
   );
 
   const handleBack = useCallback(
@@ -178,6 +177,13 @@ function App() {
                 onRefresh={pods.reload}
               />
             </ErrorBoundary>
+            <ErrorBoundary>
+              <ContainerSelector
+                containers={containers.containers}
+                selected={containers.selected}
+                onSelect={containers.setSelected}
+              />
+            </ErrorBoundary>
           </div>
 
           <div className="shrink-0 px-4 py-3 border-t border-k8s-border bg-k8s-surface/30">
@@ -212,7 +218,7 @@ function App() {
               contextName={ctx.selected}
               namespace={ns.selected}
               podName={pods.selected?.name ?? ""}
-              containerName={pods.selected?.containers?.[0] ?? null}
+              containerName={containers.selected}
               onNavigate={handleNavigate}
               onBack={handleBack}
               onRefresh={fsRefresh}

@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [x] As a user i want to select the container as well if there are multiple containers in a pod.
 - [x] Add tar-based download fallback (like `kubectl cp`) for minimal Linux containers without cat/cmd
 - [x] List files in minimal Linux containers via additional fallbacks (find, busybox) and document that distroless/scratch images (e.g. CoreDNS) have no tools to exec
 - [x] before trying windows cmd try alternatives to ls, because it may be a linux container without ls
