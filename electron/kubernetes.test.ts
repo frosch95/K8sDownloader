@@ -527,9 +527,28 @@ const POD_JSON = {
   },
   spec: {
     nodeName: "worker-2",
+    volumes: [
+      { name: "config-vol", configMap: { name: "auth-config" } },
+      { name: "tls-secret", secret: { secretName: "auth-tls" } },
+      { name: "data", persistentVolumeClaim: { claimName: "auth-data-pvc" } },
+      { name: "host-logs", hostPath: { path: "/var/log/auth" } },
+      { name: "cache", emptyDir: {} },
+    ],
     containers: [
-      { name: CONTAINER, image: "auth-service:1.4.2" },
-      { name: "sidecar", image: "envoy:1.28" },
+      {
+        name: CONTAINER,
+        image: "auth-service:1.4.2",
+        volumeMounts: [
+          { name: "config-vol", mountPath: "/etc/auth/config", readOnly: true },
+          { name: "data", mountPath: "/var/lib/auth", subPath: "current" },
+          { name: "cache", mountPath: "/tmp/cache" },
+        ],
+      },
+      {
+        name: "sidecar",
+        image: "envoy:1.28",
+        volumeMounts: [{ name: "host-logs", mountPath: "/var/log/envoy" }],
+      },
     ],
   },
   status: {
@@ -584,6 +603,32 @@ describe("getPodDetails", () => {
       ready: true,
       restartCount: 0,
       state: "Running",
+      mounts: [
+        {
+          mountPath: "/etc/auth/config",
+          readOnly: true,
+          subPath: null,
+          volumeName: "config-vol",
+          sourceType: "ConfigMap",
+          sourceDetail: "auth-config",
+        },
+        {
+          mountPath: "/var/lib/auth",
+          readOnly: false,
+          subPath: "current",
+          volumeName: "data",
+          sourceType: "PersistentVolumeClaim",
+          sourceDetail: "auth-data-pvc",
+        },
+        {
+          mountPath: "/tmp/cache",
+          readOnly: false,
+          subPath: null,
+          volumeName: "cache",
+          sourceType: "EmptyDir",
+          sourceDetail: null,
+        },
+      ],
     });
     expect(details.containers[1]).toEqual({
       name: "sidecar",
@@ -591,7 +636,47 @@ describe("getPodDetails", () => {
       ready: false,
       restartCount: 3,
       state: "Waiting: CrashLoopBackOff",
+      mounts: [
+        {
+          mountPath: "/var/log/envoy",
+          readOnly: false,
+          subPath: null,
+          volumeName: "host-logs",
+          sourceType: "HostPath",
+          sourceDetail: "/var/log/auth",
+        },
+      ],
     });
+  });
+
+  it("classifies a mount referencing an unknown volume name as Unknown", () => {
+    const podWithDanglingMount = {
+      ...POD_JSON,
+      spec: {
+        ...POD_JSON.spec,
+        containers: [
+          {
+            name: CONTAINER,
+            image: "auth-service:1.4.2",
+            volumeMounts: [{ name: "missing-volume", mountPath: "/data" }],
+          },
+        ],
+      },
+    };
+    spawnSyncMock.mockReturnValue(kubectlResult(0, JSON.stringify(podWithDanglingMount)));
+
+    const details = getPodDetails(CONTEXT, NAMESPACE, POD);
+
+    expect(details.containers[0].mounts).toEqual([
+      {
+        mountPath: "/data",
+        readOnly: false,
+        subPath: null,
+        volumeName: "missing-volume",
+        sourceType: "Unknown",
+        sourceDetail: null,
+      },
+    ]);
   });
 
   it("rejects a malformed pod name before invoking kubectl", () => {

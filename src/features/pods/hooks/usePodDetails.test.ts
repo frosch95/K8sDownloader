@@ -20,7 +20,7 @@ const sampleDetails: PodDetails = {
   startedAt: "2026-08-01T10:00:05Z",
   managedBy: "Deployment/nginx",
   containers: [
-    { name: "nginx", image: "nginx:1.25", ready: true, restartCount: 0, state: "Running" },
+    { name: "nginx", image: "nginx:1.25", ready: true, restartCount: 0, state: "Running", mounts: [] },
   ],
 };
 
