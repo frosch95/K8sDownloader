@@ -17,6 +17,7 @@
   --color-k8s-accent-gradient-from: var(--k8s-accent-gradient-from);
   --color-k8s-accent-gradient-to: var(--k8s-accent-gradient-to);
   --color-k8s-success: var(--k8s-success);
+  --color-k8s-warning: var(--k8s-warning);
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }
 
@@ -39,9 +40,11 @@
   --k8s-gradient-to: #dce4ef;
   --k8s-accent-gradient-from: #326ce5;
   --k8s-accent-gradient-to: #4a8af4;
-  /* A pale Tailwind green-400 text is unreadable against this theme's light
-     background, so the light theme gets a much darker green here. */
+  /* Pale Tailwind green-400/yellow-400 text is unreadable against this
+     theme's light background, so the light theme gets much darker
+     status colors here. */
   --k8s-success: #15803d;
+  --k8s-warning: #b9af16;
 }
 
 .dark {
@@ -58,6 +61,7 @@
   --k8s-accent-gradient-from: #326ce5;
   --k8s-accent-gradient-to: #589df6;
   --k8s-success: #4ade80;
+  --k8s-warning: #facc15;
 }
 
 .darcula {
@@ -74,6 +78,7 @@
   --k8s-accent-gradient-from: #555555;
   --k8s-accent-gradient-to: #777777;
   --k8s-success: #4ade80;
+  --k8s-warning: #facc15;
 }
 
 /* ── Base styles ─────────────────────────────────────────────────────── */

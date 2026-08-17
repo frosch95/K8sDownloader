@@ -158,10 +158,12 @@ describe("PodSelector", () => {
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Failed")).toBeInTheDocument();
 
-    // Uses the theme-aware success color, not the hardcoded Tailwind green
-    // that was unreadable on the light theme.
+    // Uses the theme-aware success/warning colors, not the hardcoded
+    // Tailwind green/yellow that were unreadable on the light theme.
     expect(runningBadges[0].className).toContain("text-k8s-success");
     expect(runningBadges[0].className).not.toContain("text-green-400");
+    expect(screen.getByText("Pending").className).toContain("text-k8s-warning");
+    expect(screen.getByText("Pending").className).not.toContain("text-yellow-400");
   });
 
   it("highlights selected pod", () => {
