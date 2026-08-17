@@ -121,10 +121,12 @@ describe("PodDetailsOverlay", () => {
     expect(screen.getByText("Waiting: CrashLoopBackOff")).toBeInTheDocument();
     expect(screen.getByText("3 restarts")).toBeInTheDocument();
 
-    // Status and Ready badges use the theme-aware success color, not the
-    // hardcoded Tailwind green that was unreadable on the light theme.
+    // Status and Ready badges use the theme-aware success color, and the
+    // not-ready sidecar badge uses the theme-aware warning color — not the
+    // hardcoded Tailwind green/yellow that were unreadable on the light theme.
     expect(screen.getByText("Running").className).toContain("text-k8s-success");
     expect(screen.getByText("Ready").className).toContain("text-k8s-success");
+    expect(screen.getByText("Waiting: CrashLoopBackOff").className).toContain("text-k8s-warning");
   });
 
   it("shows a collapsed 'Mounts' element for containers with mounts, and none for containers without", () => {

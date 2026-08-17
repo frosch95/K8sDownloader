@@ -22,7 +22,7 @@ export function Badge({
   const variantStyles = {
     primary: 'bg-gradient-accent/15 text-k8s-link',
     success: 'bg-gradient-to-r from-k8s-success/15 to-k8s-success/5 text-k8s-success',
-    warning: 'bg-gradient-to-r from-yellow-500/15 to-yellow-500/5 text-yellow-400',
+    warning: 'bg-gradient-to-r from-k8s-warning/15 to-k8s-warning/5 text-k8s-warning',
     danger: 'bg-gradient-to-r from-red-500/15 to-red-500/5 text-red-400',
     info: 'bg-gradient-to-r from-blue-500/15 to-blue-500/5 text-blue-400',
     neutral: 'bg-gradient-to-r from-k8s-surface/40 to-k8s-surface/20 text-k8s-muted',

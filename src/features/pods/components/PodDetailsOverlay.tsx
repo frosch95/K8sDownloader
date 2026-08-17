@@ -36,7 +36,7 @@ function statusBadgeClasses(status: string): string {
     case "Running":
       return "bg-k8s-success/15 text-k8s-success";
     case "Pending":
-      return "bg-yellow-500/15 text-yellow-400";
+      return "bg-k8s-warning/15 text-k8s-warning";
     default:
       return "bg-red-500/15 text-red-400";
   }
@@ -185,7 +185,7 @@ export function PodDetailsOverlay({
                             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                               container.ready
                                 ? "bg-k8s-success/15 text-k8s-success"
-                                : "bg-yellow-500/15 text-yellow-400"
+                                : "bg-k8s-warning/15 text-k8s-warning"
                             }`}
                           >
                             {container.ready ? "Ready" : container.state}

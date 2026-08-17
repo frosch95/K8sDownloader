@@ -96,7 +96,7 @@ export const PodSelector = memo(function PodSelector({
                       pod.status === "Running"
                         ? "bg-k8s-success/15 text-k8s-success"
                         : pod.status === "Pending"
-                          ? "bg-yellow-500/15 text-yellow-400"
+                          ? "bg-k8s-warning/15 text-k8s-warning"
                           : "bg-red-500/15 text-red-400"
                     }`}
                   >
