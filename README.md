@@ -49,7 +49,7 @@
 | 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
 | 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
 | 14 | **Pod Details Overlay** | An info button in the file explorer opens a resizable overlay (drag the bottom-right corner) with the selected pod's status, node, IP, creation time, controller, and per-container image/ready/restart-count details (press Esc to dismiss) |
-| 15 | **Volume Mount Info** | The pod details overlay lists each container's mount paths and classifies their source (ConfigMap / Secret / PersistentVolumeClaim / HostPath / NFS / CSI are highlighted as coming from "outside" the container image, vs. ephemeral EmptyDir/Projected/DownwardAPI volumes) |
+| 15 | **Volume Mount Info** | Each container in the pod details overlay has a collapsible "Mounts" section listing its mount paths and classifying their source (ConfigMap / Secret / PersistentVolumeClaim / HostPath / NFS / CSI are highlighted as coming from "outside" the container image, vs. ephemeral EmptyDir/Projected/DownwardAPI volumes) |
 | 16 | **Pod Log Download** | A button in the file explorer downloads the selected pod/container's logs via `kubectl logs` through the native save dialog, suggesting `<pod-name>-YYYY-MM-DD-HH-mm.log` as the file name |
 | 17 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
 

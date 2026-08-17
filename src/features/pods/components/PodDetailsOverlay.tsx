@@ -199,35 +199,48 @@ export function PodDetailsOverlay({
                       </div>
 
                       {container.mounts.length > 0 && (
-                        <div className="space-y-1 border-t border-k8s-border/30 pt-2">
-                          {container.mounts.map((mount) => (
-                            <div
-                              key={mount.mountPath}
-                              className="flex items-center justify-between gap-2 text-xs"
+                        <details className="group border-t border-k8s-border/30 pt-2">
+                          <summary className="flex items-center gap-1 text-xs font-medium text-k8s-muted uppercase tracking-wider cursor-pointer select-none list-none">
+                            <svg
+                              className="w-3 h-3 shrink-0 transition-transform group-open:rotate-90"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
                             >
-                              <span
-                                className="text-k8s-text font-mono truncate"
-                                title={mount.mountPath}
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            Mounts ({container.mounts.length})
+                          </summary>
+                          <div className="space-y-1 mt-2">
+                            {container.mounts.map((mount) => (
+                              <div
+                                key={mount.mountPath}
+                                className="flex items-center justify-between gap-2 text-xs"
                               >
-                                {mount.mountPath}
-                                {mount.subPath && (
-                                  <span className="text-k8s-muted"> (subPath: {mount.subPath})</span>
-                                )}
-                              </span>
-                              <span
-                                className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${
-                                  isExternalMount(mount.sourceType)
-                                    ? "bg-k8s-link/10 text-k8s-link"
-                                    : "bg-k8s-border/20 text-k8s-muted"
-                                }`}
-                              >
-                                {mount.sourceType}
-                                {mount.sourceDetail ? `: ${mount.sourceDetail}` : ""}
-                                {mount.readOnly ? " · RO" : ""}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                                <span
+                                  className="text-k8s-text font-mono truncate"
+                                  title={mount.mountPath}
+                                >
+                                  {mount.mountPath}
+                                  {mount.subPath && (
+                                    <span className="text-k8s-muted"> (subPath: {mount.subPath})</span>
+                                  )}
+                                </span>
+                                <span
+                                  className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${
+                                    isExternalMount(mount.sourceType)
+                                      ? "bg-k8s-link/10 text-k8s-link"
+                                      : "bg-k8s-border/20 text-k8s-muted"
+                                  }`}
+                                >
+                                  {mount.sourceType}
+                                  {mount.sourceDetail ? `: ${mount.sourceDetail}` : ""}
+                                  {mount.readOnly ? " · RO" : ""}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       )}
                     </div>
                   ))}

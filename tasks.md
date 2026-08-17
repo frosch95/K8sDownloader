@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [x] as a user i want to have thw mount information in a foldable element with the name Mounts.
 - [x] As a user i want to have the pod details overlay resizable. 
 - [x] Include mount information into the pod details to know which files and folders are from "outside"
 - [x] as a user i want to have a button to download the pod log and save it as file. The suggested name of the logfile should be the pods name plus the date and time in the format (year-month-day-houre-minute) and the file ending ".log"
