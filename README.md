@@ -48,7 +48,8 @@
 | 11 | **Resizable Sidebar** | Drag the sidebar edge to resize (200–500px) for better readability |
 | 12 | **Dark/Light Mode** | Toggle between dark and light themes — preference persisted in localStorage |
 | 13 | **Error Boundaries** | Graceful render-error recovery per component with "Try Again" fallback UI |
-| 14 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
+| 14 | **Pod Details Overlay** | An info button in the file explorer opens an overlay with the selected pod's status, node, IP, creation time, controller, and per-container image/ready/restart-count details (press Esc to dismiss) |
+| 15 | **Architecture Improvements** | Feature-based organization, Zustand state management, service layer abstraction |
 
 ## Architecture Highlights
 
@@ -78,6 +79,7 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
 | `get-contexts` | main → renderer | — | `ContextInfo[]` |
 | `get-namespaces` | main → renderer | `contextName` | `NamespaceInfo[]` |
 | `get-pods` | main → renderer | `contextName, namespace` | `PodInfo[]` |
+| `get-pod-details` | main → renderer | `contextName, namespace, podName` | `PodDetails \| null` |
 | `list-files` | main → renderer | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls`/`find`/`busybox`, Windows: `cmd /c dir` |
 | `show-save-dialog` | main → renderer | `defaultName` | `string \| null` |
 | `download-file` | main → renderer | `contextName, namespace, podName, containerName?, sourcePath, destPath` | `void` ← Linux: `cat`, Windows: `cmd /c type` |
@@ -218,6 +220,7 @@ The `KubernetesService` provides a clean interface for all Kubernetes operations
 const contexts = await KubernetesService.getContexts();
 const namespaces = await KubernetesService.getNamespaces(contextName);
 const pods = await KubernetesService.getPods(contextName, namespace);
+const podDetails = await KubernetesService.getPodDetails(contextName, namespace, podName);
 const files = await KubernetesService.listFiles(contextName, namespace, podName, containerName, dirPath);
 await KubernetesService.downloadFile(contextName, namespace, podName, containerName, sourcePath, defaultFileName);
 ```

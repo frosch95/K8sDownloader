@@ -17,6 +17,7 @@ interface FileExplorerProps {
   onNavigate: (dirPath: string) => void;
   onBack: (dirPath: string) => void;
   onRefresh: () => void;
+  onShowPodInfo: () => void;
   onError: (message: string) => void;
 }
 
@@ -32,6 +33,7 @@ export const FileExplorer = memo(function FileExplorer({
   onNavigate,
   onBack,
   onRefresh,
+  onShowPodInfo,
   onError,
 }: FileExplorerProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -140,7 +142,19 @@ export const FileExplorer = memo(function FileExplorer({
           ))}
         </div>
 
-        <RefreshButton onClick={onRefresh} loading={loading} />
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={onShowPodInfo}
+            className="p-1 rounded hover:bg-k8s-surface/50 transition-colors"
+            title="Pod details"
+            aria-label="Pod details"
+          >
+            <svg className="w-4 h-4 text-k8s-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <RefreshButton onClick={onRefresh} loading={loading} />
+        </div>
       </div>
 
       {/* File list */}

@@ -23,6 +23,26 @@ export interface PodInfo {
 
 export type PodPhase = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
+export interface PodContainerDetail {
+  name: string;
+  image: string;
+  ready: boolean;
+  restartCount: number;
+  state: string;
+}
+
+export interface PodDetails {
+  name: string;
+  namespace: string;
+  status: PodPhase;
+  node: string | null;
+  podIP: string | null;
+  createdAt: string | null;
+  startedAt: string | null;
+  managedBy: string | null;
+  containers: PodContainerDetail[];
+}
+
 export interface FileEntry {
   name: string;
   path: string;

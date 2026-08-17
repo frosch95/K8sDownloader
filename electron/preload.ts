@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../src/shared/types/kubernetes";
+import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from "../src/shared/types/kubernetes";
 
 const electronAPI = {
   getContexts: (): Promise<ContextInfo[]> =>
@@ -10,6 +10,13 @@ const electronAPI = {
 
   getPods: (contextName: string, namespace: string): Promise<PodInfo[]> =>
     ipcRenderer.invoke("get-pods", contextName, namespace),
+
+  getPodDetails: (
+    contextName: string,
+    namespace: string,
+    podName: string
+  ): Promise<PodDetails | null> =>
+    ipcRenderer.invoke("get-pod-details", contextName, namespace, podName),
 
   listFiles: (
     contextName: string,

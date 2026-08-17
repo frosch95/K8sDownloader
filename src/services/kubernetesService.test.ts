@@ -9,6 +9,7 @@ describe("getElectronApi", () => {
     expect(await api?.getContexts()).toEqual([]);
     expect(await api?.getNamespaces("default")).toEqual([]);
     expect(await api?.getPods("ctx", "default")).toEqual([]);
+    expect(await api?.getPodDetails("ctx", "default", "pod")).toBeNull();
     expect(await api?.listFiles("ctx", "default", "pod", null, "/")).toEqual([]);
     expect(await api?.showSaveDialog("file.txt")).toBeNull();
   });

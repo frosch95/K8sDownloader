@@ -1,4 +1,4 @@
-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "./kubernetes";
+import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from "./kubernetes";
 
 export interface ApiResponse<T> {
   data: T;
@@ -17,6 +17,11 @@ export interface ElectronApiBridge {
   getContexts: () => Promise<ContextInfo[]>;
   getNamespaces: (contextName: string) => Promise<NamespaceInfo[]>;
   getPods: (contextName: string, namespace: string) => Promise<PodInfo[]>;
+  getPodDetails: (
+    contextName: string,
+    namespace: string,
+    podName: string
+  ) => Promise<PodDetails | null>;
   listFiles: (
     contextName: string,
     namespace: string,

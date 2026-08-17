@@ -6,6 +6,7 @@ import {
   getContexts,
   getNamespaces,
   getPods,
+  getPodDetails,
   listFiles,
   downloadFile,
 } from "./kubernetes";
@@ -106,6 +107,13 @@ function registerIpcHandlers(): void {
     "get-pods",
     async (_event, contextName: string, namespace: string) => {
       return getPods(contextName, namespace);
+    }
+  );
+
+  ipcMain.handle(
+    "get-pod-details",
+    async (_event, contextName: string, namespace: string, podName: string) => {
+      return getPodDetails(contextName, namespace, podName);
     }
   );
 

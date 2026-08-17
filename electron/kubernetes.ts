@@ -42,6 +42,26 @@ export interface PodInfo {
   containers: string[];
 }
 
+export interface PodContainerDetail {
+  name: string;
+  image: string;
+  ready: boolean;
+  restartCount: number;
+  state: string;
+}
+
+export interface PodDetails {
+  name: string;
+  namespace: string;
+  status: string;
+  node: string | null;
+  podIP: string | null;
+  createdAt: string | null;
+  startedAt: string | null;
+  managedBy: string | null;
+  containers: PodContainerDetail[];
+}
+
 export interface FileEntry {
   name: string;
   path: string;
@@ -145,6 +165,93 @@ export function getPods(
 
   log(`getPods: found ${pods.length} pod(s)`);
   return pods;
+}
+
+/** Human-readable label for a container's current lifecycle state. */
+function describeContainerState(
+  state?: {
+    running?: unknown;
+    waiting?: { reason?: string };
+    terminated?: { reason?: string };
+  }
+): string {
+  if (!state) return "Unknown";
+  if (state.running) return "Running";
+  if (state.waiting) return state.waiting.reason ? `Waiting: ${state.waiting.reason}` : "Waiting";
+  if (state.terminated) return state.terminated.reason ? `Terminated: ${state.terminated.reason}` : "Terminated";
+  return "Unknown";
+}
+
+export function getPodDetails(
+  contextName: string,
+  namespace: string,
+  podName: string
+): PodDetails {
+  const safeContextName = validateKubernetesIdentifier(contextName, "Context name", {
+    allowUppercase: true,
+  });
+  const safeNamespace = validateKubernetesIdentifier(namespace, "Namespace");
+  const safePodName = validateKubernetesIdentifier(podName, "Pod name");
+  log(`getPodDetails: context="${safeContextName}" ns="${safeNamespace}" pod="${safePodName}"`);
+
+  const output = runKubectl([
+    "--context", safeContextName,
+    "-n", safeNamespace,
+    "get", "pod", safePodName,
+    "-o", "json",
+  ]);
+  const pod = JSON.parse(output) as {
+    metadata?: {
+      name?: string;
+      namespace?: string;
+      creationTimestamp?: string;
+      ownerReferences?: { kind: string; name: string }[];
+    };
+    spec?: { nodeName?: string; containers?: { name: string; image?: string }[] };
+    status?: {
+      phase?: string;
+      podIP?: string;
+      startTime?: string;
+      containerStatuses?: {
+        name: string;
+        ready?: boolean;
+        restartCount?: number;
+        state?: { running?: unknown; waiting?: { reason?: string }; terminated?: { reason?: string } };
+      }[];
+    };
+  };
+
+  const statusByContainer = new Map(
+    (pod.status?.containerStatuses || []).map((cs) => [cs.name, cs])
+  );
+
+  const containers: PodContainerDetail[] = (pod.spec?.containers || []).map((c) => {
+    const containerStatus = statusByContainer.get(c.name);
+    return {
+      name: c.name,
+      image: c.image || "",
+      ready: containerStatus?.ready ?? false,
+      restartCount: containerStatus?.restartCount ?? 0,
+      state: describeContainerState(containerStatus?.state),
+    };
+  });
+
+  const ownerRef = (pod.metadata?.ownerReferences || [])[0];
+
+  const details: PodDetails = {
+    name: pod.metadata?.name || safePodName,
+    namespace: pod.metadata?.namespace || safeNamespace,
+    status: pod.status?.phase || "Unknown",
+    node: pod.spec?.nodeName || null,
+    podIP: pod.status?.podIP || null,
+    createdAt: pod.metadata?.creationTimestamp || null,
+    startedAt: pod.status?.startTime || null,
+    managedBy: ownerRef ? `${ownerRef.kind}/${ownerRef.name}` : null,
+    containers,
+  };
+
+  log(`getPodDetails: resolved ${containers.length} container(s) for pod="${safePodName}"`);
+  return details;
 }
 
 // ── File listing via kubectl exec ──────────────────────────────────────────
