@@ -1,6 +1,6 @@
 {
   "name": "k8sdownloader",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "Desktop app to browse and download files from Kubernetes pods",
   "author": "Andreas Billmann <abi@love2co.de>",
   "private": true,
