@@ -34,7 +34,7 @@ function formatTimestamp(value: string | null): string {
 function statusBadgeClasses(status: string): string {
   switch (status) {
     case "Running":
-      return "bg-green-500/15 text-green-400";
+      return "bg-k8s-success/15 text-k8s-success";
     case "Pending":
       return "bg-yellow-500/15 text-yellow-400";
     default:
@@ -184,7 +184,7 @@ export function PodDetailsOverlay({
                           <span
                             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                               container.ready
-                                ? "bg-green-500/15 text-green-400"
+                                ? "bg-k8s-success/15 text-k8s-success"
                                 : "bg-yellow-500/15 text-yellow-400"
                             }`}
                           >

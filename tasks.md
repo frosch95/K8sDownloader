@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [x] The green in the status is hard to read on a light theme. Use a darker green in the light theme.
 - [x] as a user i want to have thw mount information in a foldable element with the name Mounts.
 - [x] As a user i want to have the pod details overlay resizable. 
 - [x] Include mount information into the pod details to know which files and folders are from "outside"

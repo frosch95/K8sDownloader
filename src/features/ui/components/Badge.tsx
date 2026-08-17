@@ -21,7 +21,7 @@ export function Badge({
 }: BadgeProps) {
   const variantStyles = {
     primary: 'bg-gradient-accent/15 text-k8s-link',
-    success: 'bg-gradient-to-r from-green-500/15 to-green-500/5 text-green-400',
+    success: 'bg-gradient-to-r from-k8s-success/15 to-k8s-success/5 text-k8s-success',
     warning: 'bg-gradient-to-r from-yellow-500/15 to-yellow-500/5 text-yellow-400',
     danger: 'bg-gradient-to-r from-red-500/15 to-red-500/5 text-red-400',
     info: 'bg-gradient-to-r from-blue-500/15 to-blue-500/5 text-blue-400',

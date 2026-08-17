@@ -153,9 +153,15 @@ describe("PodSelector", () => {
       />
     );
     // Multiple pods can have "Running" status
-    expect(screen.getAllByText("Running")).toHaveLength(2);
+    const runningBadges = screen.getAllByText("Running");
+    expect(runningBadges).toHaveLength(2);
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Failed")).toBeInTheDocument();
+
+    // Uses the theme-aware success color, not the hardcoded Tailwind green
+    // that was unreadable on the light theme.
+    expect(runningBadges[0].className).toContain("text-k8s-success");
+    expect(runningBadges[0].className).not.toContain("text-green-400");
   });
 
   it("highlights selected pod", () => {
