@@ -13,8 +13,39 @@ const sampleDetails: PodDetails = {
   startedAt: "2026-08-01T10:00:05Z",
   managedBy: "Deployment/nginx",
   containers: [
-    { name: "nginx", image: "nginx:1.25", ready: true, restartCount: 0, state: "Running" },
-    { name: "sidecar", image: "envoy:1.28", ready: false, restartCount: 3, state: "Waiting: CrashLoopBackOff" },
+    {
+      name: "nginx",
+      image: "nginx:1.25",
+      ready: true,
+      restartCount: 0,
+      state: "Running",
+      mounts: [
+        {
+          mountPath: "/etc/nginx/conf.d",
+          readOnly: true,
+          subPath: null,
+          volumeName: "config-vol",
+          sourceType: "ConfigMap",
+          sourceDetail: "nginx-config",
+        },
+        {
+          mountPath: "/var/cache/nginx",
+          readOnly: false,
+          subPath: null,
+          volumeName: "cache",
+          sourceType: "EmptyDir",
+          sourceDetail: null,
+        },
+      ],
+    },
+    {
+      name: "sidecar",
+      image: "envoy:1.28",
+      ready: false,
+      restartCount: 3,
+      state: "Waiting: CrashLoopBackOff",
+      mounts: [],
+    },
   ],
 };
 
@@ -81,6 +112,24 @@ describe("PodDetailsOverlay", () => {
     expect(screen.getByText("3 restarts")).toBeInTheDocument();
   });
 
+  it("renders each container's volume mounts with their source", () => {
+    render(
+      <PodDetailsOverlay
+        isOpen={true}
+        podName="nginx-abc"
+        details={sampleDetails}
+        loading={false}
+        error={null}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("/etc/nginx/conf.d")).toBeInTheDocument();
+    expect(screen.getByText("ConfigMap: nginx-config · RO")).toBeInTheDocument();
+    expect(screen.getByText("/var/cache/nginx")).toBeInTheDocument();
+    expect(screen.getByText("EmptyDir")).toBeInTheDocument();
+  });
+
   it("calls onClose when the Close button is clicked", () => {
     const onClose = vi.fn();
     render(
@@ -95,6 +144,57 @@ describe("PodDetailsOverlay", () => {
     );
     fireEvent.click(screen.getByText("Close"));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("resizes the dialog when the resize handle is dragged", () => {
+    render(
+      <PodDetailsOverlay
+        isOpen={true}
+        podName="nginx-abc"
+        details={sampleDetails}
+        loading={false}
+        error={null}
+        onClose={vi.fn()}
+      />
+    );
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveStyle({ width: "512px", height: "480px" });
+
+    const handle = screen.getByRole("separator", { name: "Resize dialog" });
+    fireEvent.mouseDown(handle, { clientX: 100, clientY: 100 });
+    fireEvent.mouseMove(window, { clientX: 150, clientY: 130 });
+
+    expect(dialog).toHaveStyle({ width: "562px", height: "510px" });
+
+    fireEvent.mouseUp(window);
+    fireEvent.mouseMove(window, { clientX: 900, clientY: 900 });
+
+    // Further movement after mouseup must not keep resizing.
+    expect(dialog).toHaveStyle({ width: "562px", height: "510px" });
+  });
+
+  it("clamps resizing to the configured min/max bounds", () => {
+    render(
+      <PodDetailsOverlay
+        isOpen={true}
+        podName="nginx-abc"
+        details={sampleDetails}
+        loading={false}
+        error={null}
+        onClose={vi.fn()}
+      />
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const handle = screen.getByRole("separator", { name: "Resize dialog" });
+
+    fireEvent.mouseDown(handle, { clientX: 0, clientY: 0 });
+    fireEvent.mouseMove(window, { clientX: 5000, clientY: 5000 });
+    expect(dialog).toHaveStyle({ width: "800px", height: "700px" });
+
+    fireEvent.mouseMove(window, { clientX: -5000, clientY: -5000 });
+    expect(dialog).toHaveStyle({ width: "400px", height: "320px" });
   });
 
   it("calls onClose when Escape is pressed", () => {

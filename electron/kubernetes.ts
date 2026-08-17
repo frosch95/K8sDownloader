@@ -42,12 +42,22 @@ export interface PodInfo {
   containers: string[];
 }
 
+export interface PodVolumeMount {
+  mountPath: string;
+  readOnly: boolean;
+  subPath: string | null;
+  volumeName: string;
+  sourceType: string;
+  sourceDetail: string | null;
+}
+
 export interface PodContainerDetail {
   name: string;
   image: string;
   ready: boolean;
   restartCount: number;
   state: string;
+  mounts: PodVolumeMount[];
 }
 
 export interface PodDetails {
@@ -182,6 +192,46 @@ function describeContainerState(
   return "Unknown";
 }
 
+interface RawVolume {
+  name: string;
+  configMap?: { name?: string };
+  secret?: { secretName?: string };
+  persistentVolumeClaim?: { claimName?: string };
+  hostPath?: { path?: string };
+  emptyDir?: unknown;
+  projected?: unknown;
+  downwardAPI?: unknown;
+  csi?: { driver?: string };
+  nfs?: { server?: string; path?: string };
+}
+
+/**
+ * Classifies a volume's underlying source so the pod details overlay can
+ * show users which mount paths come from "outside" the container image
+ * (ConfigMap/Secret/PVC/HostPath/NFS) versus ephemeral pod-local storage
+ * (EmptyDir) or Kubernetes-internal projections (Projected/DownwardAPI).
+ */
+function describeVolumeSource(volume?: RawVolume): { sourceType: string; sourceDetail: string | null } {
+  if (!volume) return { sourceType: "Unknown", sourceDetail: null };
+  if (volume.configMap) return { sourceType: "ConfigMap", sourceDetail: volume.configMap.name || null };
+  if (volume.secret) return { sourceType: "Secret", sourceDetail: volume.secret.secretName || null };
+  if (volume.persistentVolumeClaim) {
+    return { sourceType: "PersistentVolumeClaim", sourceDetail: volume.persistentVolumeClaim.claimName || null };
+  }
+  if (volume.hostPath) return { sourceType: "HostPath", sourceDetail: volume.hostPath.path || null };
+  if (volume.nfs) {
+    return {
+      sourceType: "NFS",
+      sourceDetail: volume.nfs.server && volume.nfs.path ? `${volume.nfs.server}:${volume.nfs.path}` : null,
+    };
+  }
+  if (volume.csi) return { sourceType: "CSI", sourceDetail: volume.csi.driver || null };
+  if (volume.emptyDir !== undefined) return { sourceType: "EmptyDir", sourceDetail: null };
+  if (volume.projected !== undefined) return { sourceType: "Projected", sourceDetail: null };
+  if (volume.downwardAPI !== undefined) return { sourceType: "DownwardAPI", sourceDetail: null };
+  return { sourceType: "Other", sourceDetail: null };
+}
+
 export function getPodDetails(
   contextName: string,
   namespace: string,
@@ -207,7 +257,15 @@ export function getPodDetails(
       creationTimestamp?: string;
       ownerReferences?: { kind: string; name: string }[];
     };
-    spec?: { nodeName?: string; containers?: { name: string; image?: string }[] };
+    spec?: {
+      nodeName?: string;
+      volumes?: RawVolume[];
+      containers?: {
+        name: string;
+        image?: string;
+        volumeMounts?: { name: string; mountPath: string; readOnly?: boolean; subPath?: string }[];
+      }[];
+    };
     status?: {
       phase?: string;
       podIP?: string;
@@ -224,15 +282,28 @@ export function getPodDetails(
   const statusByContainer = new Map(
     (pod.status?.containerStatuses || []).map((cs) => [cs.name, cs])
   );
+  const volumesByName = new Map((pod.spec?.volumes || []).map((v) => [v.name, v]));
 
   const containers: PodContainerDetail[] = (pod.spec?.containers || []).map((c) => {
     const containerStatus = statusByContainer.get(c.name);
+    const mounts: PodVolumeMount[] = (c.volumeMounts || []).map((m) => {
+      const { sourceType, sourceDetail } = describeVolumeSource(volumesByName.get(m.name));
+      return {
+        mountPath: m.mountPath,
+        readOnly: m.readOnly ?? false,
+        subPath: m.subPath || null,
+        volumeName: m.name,
+        sourceType,
+        sourceDetail,
+      };
+    });
     return {
       name: c.name,
       image: c.image || "",
       ready: containerStatus?.ready ?? false,
       restartCount: containerStatus?.restartCount ?? 0,
       state: describeContainerState(containerStatus?.state),
+      mounts,
     };
   });
 

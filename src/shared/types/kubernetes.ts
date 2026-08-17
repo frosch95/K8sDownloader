@@ -23,12 +23,22 @@ export interface PodInfo {
 
 export type PodPhase = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
+export interface PodVolumeMount {
+  mountPath: string;
+  readOnly: boolean;
+  subPath: string | null;
+  volumeName: string;
+  sourceType: string;
+  sourceDetail: string | null;
+}
+
 export interface PodContainerDetail {
   name: string;
   image: string;
   ready: boolean;
   restartCount: number;
   state: string;
+  mounts: PodVolumeMount[];
 }
 
 export interface PodDetails {
