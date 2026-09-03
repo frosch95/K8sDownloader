@@ -2,13 +2,16 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { FileExplorer } from "./FileExplorer";
 import type { FileEntry } from "../../../shared/types/kubernetes";
-import * as apiModule from "../../../utils/api";
+import { KubernetesService } from "../../../services/kubernetesService";
 
-vi.mock("../../../utils/api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../utils/api")>();
+vi.mock("../../../services/kubernetesService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../services/kubernetesService")>();
   return {
     ...actual,
-    saveAndDownloadPodLogs: vi.fn(),
+    KubernetesService: {
+      ...actual.KubernetesService,
+      downloadPodLogs: vi.fn(),
+    },
   };
 });
 
@@ -201,7 +204,7 @@ describe("FileExplorer", () => {
   });
 
   it("downloads pod logs with a pod-name-and-timestamp suggested filename", async () => {
-    const spy = vi.mocked(apiModule.saveAndDownloadPodLogs);
+    const spy = vi.mocked(KubernetesService.downloadPodLogs);
     spy.mockReset();
     spy.mockResolvedValue(undefined);
 
@@ -219,7 +222,7 @@ describe("FileExplorer", () => {
   });
 
   it("shows an error message when the log download fails", async () => {
-    const spy = vi.mocked(apiModule.saveAndDownloadPodLogs);
+    const spy = vi.mocked(KubernetesService.downloadPodLogs);
     spy.mockReset();
     spy.mockRejectedValue(new Error("kubectl logs failed: boom"));
     const onError = vi.fn();

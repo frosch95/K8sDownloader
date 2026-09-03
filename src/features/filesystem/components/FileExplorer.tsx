@@ -1,5 +1,5 @@
 import { useCallback, useState, memo } from "react";
-import { saveAndDownload, saveAndDownloadPodLogs } from "../../../utils/api";
+import { KubernetesService } from "../../../services/kubernetesService";
 import { getParentPath, formatLogFileName } from "../../../utils/kubeconfig";
 import type { FileEntry } from "../../../shared/types/kubernetes";
 import { MemoizedFileRow } from "./FileRow";
@@ -54,7 +54,7 @@ export const FileExplorer = memo(function FileExplorer({
         if (!contextName || !namespace || !podName) {
           throw new Error("Missing required parameters for file download");
         }
-        await saveAndDownload(
+        await KubernetesService.downloadFile(
           contextName,
           namespace,
           podName,
@@ -79,7 +79,7 @@ export const FileExplorer = memo(function FileExplorer({
     if (!contextName || !namespace || !podName) return;
     setDownloadingLogs(true);
     try {
-      await saveAndDownloadPodLogs(
+      await KubernetesService.downloadPodLogs(
         contextName,
         namespace,
         podName,
