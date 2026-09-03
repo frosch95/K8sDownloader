@@ -78,14 +78,14 @@ For detailed architecture information, see [ARCHITECTURE.md](docs/ARCHITECTURE.m
 
 | Channel | Direction | Parameters | Returns |
 |---------|-----------|-----------|---------|
-| `get-contexts` | main → renderer | — | `ContextInfo[]` |
-| `get-namespaces` | main → renderer | `contextName` | `NamespaceInfo[]` |
-| `get-pods` | main → renderer | `contextName, namespace` | `PodInfo[]` |
-| `get-pod-details` | main → renderer | `contextName, namespace, podName` | `PodDetails \| null` |
-| `list-files` | main → renderer | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls`/`find`/`busybox`, Windows: `cmd /c dir` |
-| `show-save-dialog` | main → renderer | `defaultName` | `string \| null` |
-| `download-file` | main → renderer | `contextName, namespace, podName, containerName?, sourcePath, destPath` | `void` ← Linux: `cat`, Windows: `cmd /c type` |
-| `download-pod-logs` | main → renderer | `contextName, namespace, podName, containerName?, destPath` | `void` ← `kubectl logs` |
+| `get-contexts` | renderer → main | — | `ContextInfo[]` |
+| `get-namespaces` | renderer → main | `contextName` | `NamespaceInfo[]` |
+| `get-pods` | renderer → main | `contextName, namespace` | `PodInfo[]` |
+| `get-pod-details` | renderer → main | `contextName, namespace, podName` | `PodDetails \| null` |
+| `list-files` | renderer → main | `contextName, namespace, podName, containerName?, path` | `FileEntry[]` ← Linux: `ls`/`find`/`busybox`, Windows: `cmd /c dir` |
+| `show-save-dialog` | renderer → main | `defaultName` | `string \| null` |
+| `download-file` | renderer → main | `contextName, namespace, podName, containerName?, sourcePath, destPath` | `void` ← Linux: `cat`, Windows: `cmd /c type` |
+| `download-pod-logs` | renderer → main | `contextName, namespace, podName, containerName?, destPath` | `void` ← `kubectl logs` |
 
 ## Prerequisites
 
@@ -235,18 +235,20 @@ Structured error handling with `AppError` class:
 
 ```typescript
 export enum ErrorCode {
-  KUBECONFIG_NOT_FOUND,
-  KUBECTL_NOT_INSTALLED,
-  KUBECTL_EXEC_FAILED,
-  CONTEXT_NOT_FOUND,
-  NAMESPACE_NOT_FOUND,
-  POD_NOT_FOUND,
-  CONTAINER_NOT_FOUND,
-  FILE_NOT_FOUND,
-  PERMISSION_DENIED,
-  NETWORK_ERROR,
-  TIMEOUT,
-  UNKNOWN_ERROR,
+  KUBECONFIG_NOT_FOUND = 'KUBECONFIG_NOT_FOUND',
+  KUBECTL_NOT_INSTALLED = 'KUBECTL_NOT_INSTALLED',
+  KUBECTL_EXEC_FAILED = 'KUBECTL_EXEC_FAILED',
+  CONTEXT_NOT_FOUND = 'CONTEXT_NOT_FOUND',
+  NAMESPACE_NOT_FOUND = 'NAMESPACE_NOT_FOUND',
+  POD_NOT_FOUND = 'POD_NOT_FOUND',
+  CONTAINER_NOT_FOUND = 'CONTAINER_NOT_FOUND',
+  FILE_NOT_FOUND = 'FILE_NOT_FOUND',
+  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  INVALID_INPUT = 'INVALID_INPUT',
+  INVALID_PATH = 'INVALID_PATH',
+  TIMEOUT = 'TIMEOUT',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 ```
 

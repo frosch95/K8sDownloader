@@ -3,7 +3,7 @@
 ## 1. Overview & Objectives
 * **Problem Statement:** Sometimes pods contain files that a user wants to download. The users are not familiar with kubernetes and kubectl and should have a simple ui like a file browser to navigate throught the file system in a pod and download files.
 * **Target Audience:** Users that are not familiar with kubernetes and cloud but are used to desktop tools like ftp clients or windows file explorer. 
-* **Success Criteria:** Easy to use desktop app that helps a user to select a cluster from the kubernetes config, shows the available namespaces and pods and shows the filesystem of the pod. And also the user should be able to download the files from the pod.
+* **Success Criteria:** Easy to use desktop app that helps a user to select a context from the kubernetes config, shows the available namespaces and pods and shows the filesystem of the pod. And also the user should be able to download the files from the pod.
 
 ## 2. Technical Stack & Architecture
 * **Frontend:** React 19, TypeScript, Tailwind CSS, Electron, Node.js, PNPM

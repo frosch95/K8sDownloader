@@ -1,20 +1,20 @@
 # Tasks
 
 ## Backlog
-- [ ] **Docs:** `requirements.md` and `tasks.md` describe the initial selection step as picking "a cluster," but the app's actual domain term (per `CONTEXT.md`) is Context — a Cluster is a property of a Context, not the thing selected. Update the wording in both docs.
-- [ ] **Docs:** README.md's "IPC Channels" table lists "Direction" as "main → renderer" for every channel, but the actual flow is renderer → main via `ipcRenderer.invoke`. Fix the table.
-- [ ] **Docs:** README.md's documented `ErrorCode` list is stale — it's missing `INVALID_PATH` and is ordered differently from `src/shared/types/errors.ts`. Sync it.
 
 ## In Progress
 
 ## Done
+- [x] **Docs:** `requirements.md` and `tasks.md` describe the initial selection step as picking "a cluster," but the app's actual domain term (per `CONTEXT.md`) is Context — a Cluster is a property of a Context, not the thing selected. Update the wording in both docs.
+- [x] **Docs:** README.md's "IPC Channels" table lists "Direction" as "main → renderer" for every channel, but the actual flow is renderer → main via `ipcRenderer.invoke`. Fix the table.
+- [x] **Docs:** README.md's documented `ErrorCode` list is stale — it's missing `INVALID_PATH` and is ordered differently from `src/shared/types/errors.ts`. Sync it.
 - [x] **Improvement:** 6 of 14 `ErrorCode` members (`KUBECONFIG_NOT_FOUND`, `CONTAINER_NOT_FOUND`, `FILE_NOT_FOUND`, `PERMISSION_DENIED`, `NETWORK_ERROR`, `TIMEOUT`) are never actually constructed by `AppError.fromError()`'s substring classifier and always resolve to `UNKNOWN_ERROR` instead. Either wire them up at their real throw sites (e.g. a timeout should produce `TIMEOUT`, a denied `ls`/`cat` should produce `PERMISSION_DENIED`) or remove them from the enum and README.
 - [x] **Code Quality:** Remove or actually use the dead types in `src/shared/types/api.ts` (`ApiResponse<T>`, `PageInfo`, `ConnectionStep`) — none are referenced anywhere outside their own declarations.
 - [x] **Code Quality:** De-duplicate the hand-maintained type definitions in `electron/kubernetes.ts` and `src/shared/types/kubernetes.ts` (`ContextInfo`, `NamespaceInfo`, `PodInfo`, `PodVolumeMount`, `PodContainerDetail`, `PodDetails`, `FileEntry`) — they've already drifted: `NamespaceInfo.status`/`creationTimestamp`, `PodInfo.node`/`creationTimestamp`/`restartCount`, and `FileEntry.permissions`/`owner`/`group` are declared renderer-side but never populated by any electron-side mapper.
 - [x] **Code Quality:** Remove the legacy `src/hooks/{useKubeConfig,useNamespaces,usePods,useFileSystem}.ts` and the `src/types/index.ts` re-export shim — both are superseded by `src/features/**/hooks` and `src/shared/types` and are not imported anywhere.
 - [x] **Bugfix:** `FileExplorer.tsx` imports `saveAndDownload`/`saveAndDownloadPodLogs` from `src/utils/api.ts`, which is explicitly labeled "legacy... kept for backward compatibility." This violates the CLAUDE.md rule that components must go through `KubernetesService`, not `window.electronAPI` directly. Route it through `KubernetesService` instead.
 - [x] The yellow status is also unreadable in the light mode, use a darker one.
-- [x] allow to filter the cluster list and the namespace list as well
+- [x] allow to filter the context list and the namespace list as well
 - [x] The green in the status is hard to read on a light theme. Use a darker green in the light theme.
 - [x] as a user i want to have thw mount information in a foldable element with the name Mounts.
 - [x] As a user i want to have the pod details overlay resizable. 
@@ -39,8 +39,8 @@
 * [x] **Tests:** Add regression tests for Kubernetes identifier validation, container path sanitization, and the Electron fallback behavior.
 * [x] **Quality:** Verify linting, tests, and the production build after the latest hardening changes.
 * [x] **Documentation:** Document the new security hardening measures in the README, architecture notes, and requirements.
-* [x] **Feature:** remember the last selections in cluster and namespace and make it persistent over restarts
-* [x] **Feature:** Add a 'Select Cluster' and 'Select Namespace' item in the list and this should be selected first, to avoid connecting to a non existing cluster or namespace
+* [x] **Feature:** remember the last selections in context and namespace and make it persistent over restarts
+* [x] **Feature:** Add a 'Select Context' and 'Select Namespace' item in the list and this should be selected first, to avoid connecting to a non existing context or namespace
 * [x] **Improvement:** the height of the pod list should use the complete space to support long list of pods
 * [x] **Improvement:** Write the log output on every start into an empty file output.log.
 * [x] **BugFix:** Update GitHub Actions to use latest versions to avoid Node.js 20 deprecation warnings
