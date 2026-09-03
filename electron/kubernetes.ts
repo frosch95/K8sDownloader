@@ -10,6 +10,26 @@ import {
   sanitizeContainerPath,
   validateKubernetesIdentifier,
 } from "../src/utils/kubeconfig";
+import type {
+  ContextInfo,
+  NamespaceInfo,
+  PodInfo,
+  PodPhase,
+  PodVolumeMount,
+  PodContainerDetail,
+  PodDetails,
+  FileEntry,
+} from "../src/shared/types/kubernetes";
+
+export type {
+  ContextInfo,
+  NamespaceInfo,
+  PodInfo,
+  PodVolumeMount,
+  PodContainerDetail,
+  PodDetails,
+  FileEntry,
+};
 
 // ── Logger ─────────────────────────────────────────────────────────────────
 
@@ -25,59 +45,11 @@ function logError(message: string): void {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export interface ContextInfo {
-  name: string;
-  cluster: string;
-  user: string;
-}
+const POD_PHASES: readonly PodPhase[] = ["Pending", "Running", "Succeeded", "Failed", "Unknown"];
 
-export interface NamespaceInfo {
-  name: string;
-}
-
-export interface PodInfo {
-  name: string;
-  namespace: string;
-  status: string;
-  containers: string[];
-}
-
-export interface PodVolumeMount {
-  mountPath: string;
-  readOnly: boolean;
-  subPath: string | null;
-  volumeName: string;
-  sourceType: string;
-  sourceDetail: string | null;
-}
-
-export interface PodContainerDetail {
-  name: string;
-  image: string;
-  ready: boolean;
-  restartCount: number;
-  state: string;
-  mounts: PodVolumeMount[];
-}
-
-export interface PodDetails {
-  name: string;
-  namespace: string;
-  status: string;
-  node: string | null;
-  podIP: string | null;
-  createdAt: string | null;
-  startedAt: string | null;
-  managedBy: string | null;
-  containers: PodContainerDetail[];
-}
-
-export interface FileEntry {
-  name: string;
-  path: string;
-  isDir: boolean;
-  size: number;
-  modified: string;
+/** Narrows a raw `status.phase` string from the Kubernetes API to the known PodPhase union. */
+function toPodPhase(phase: string | undefined): PodPhase {
+  return (POD_PHASES as readonly string[]).includes(phase ?? "") ? (phase as PodPhase) : "Unknown";
 }
 
 // ── API: Contexts ──────────────────────────────────────────────────────────
@@ -166,7 +138,7 @@ export function getPods(
     }) => ({
       name: pod.metadata?.name || "",
       namespace: pod.metadata?.namespace || "",
-      status: pod.status?.phase || "Unknown",
+      status: toPodPhase(pod.status?.phase),
       containers: pod.spec?.containers?.map(
         (c: { name: string }) => c.name
       ) || [],
@@ -312,7 +284,7 @@ export function getPodDetails(
   const details: PodDetails = {
     name: pod.metadata?.name || safePodName,
     namespace: pod.metadata?.namespace || safeNamespace,
-    status: pod.status?.phase || "Unknown",
+    status: toPodPhase(pod.status?.phase),
     node: pod.spec?.nodeName || null,
     podIP: pod.status?.podIP || null,
     createdAt: pod.metadata?.creationTimestamp || null,

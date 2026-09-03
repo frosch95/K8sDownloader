@@ -2,7 +2,6 @@
 
 ## Backlog
 - [ ] **Docs:** `requirements.md` and `tasks.md` describe the initial selection step as picking "a cluster," but the app's actual domain term (per `CONTEXT.md`) is Context — a Cluster is a property of a Context, not the thing selected. Update the wording in both docs.
-- [ ] **Code Quality:** De-duplicate the hand-maintained type definitions in `electron/kubernetes.ts` and `src/shared/types/kubernetes.ts` (`ContextInfo`, `NamespaceInfo`, `PodInfo`, `PodVolumeMount`, `PodContainerDetail`, `PodDetails`, `FileEntry`) — they've already drifted: `NamespaceInfo.status`/`creationTimestamp`, `PodInfo.node`/`creationTimestamp`/`restartCount`, and `FileEntry.permissions`/`owner`/`group` are declared renderer-side but never populated by any electron-side mapper.
 - [ ] **Docs:** README.md's "IPC Channels" table lists "Direction" as "main → renderer" for every channel, but the actual flow is renderer → main via `ipcRenderer.invoke`. Fix the table.
 - [ ] **Docs:** README.md's documented `ErrorCode` list is stale — it's missing `INVALID_PATH` and is ordered differently from `src/shared/types/errors.ts`. Sync it.
 - [ ] **Code Quality:** Remove or actually use the dead types in `src/shared/types/api.ts` (`ApiResponse<T>`, `PageInfo`, `ConnectionStep`) — none are referenced anywhere outside their own declarations.
@@ -11,6 +10,7 @@
 ## In Progress
 
 ## Done
+- [x] **Code Quality:** De-duplicate the hand-maintained type definitions in `electron/kubernetes.ts` and `src/shared/types/kubernetes.ts` (`ContextInfo`, `NamespaceInfo`, `PodInfo`, `PodVolumeMount`, `PodContainerDetail`, `PodDetails`, `FileEntry`) — they've already drifted: `NamespaceInfo.status`/`creationTimestamp`, `PodInfo.node`/`creationTimestamp`/`restartCount`, and `FileEntry.permissions`/`owner`/`group` are declared renderer-side but never populated by any electron-side mapper.
 - [x] **Code Quality:** Remove the legacy `src/hooks/{useKubeConfig,useNamespaces,usePods,useFileSystem}.ts` and the `src/types/index.ts` re-export shim — both are superseded by `src/features/**/hooks` and `src/shared/types` and are not imported anywhere.
 - [x] **Bugfix:** `FileExplorer.tsx` imports `saveAndDownload`/`saveAndDownloadPodLogs` from `src/utils/api.ts`, which is explicitly labeled "legacy... kept for backward compatibility." This violates the CLAUDE.md rule that components must go through `KubernetesService`, not `window.electronAPI` directly. Route it through `KubernetesService` instead.
 - [x] The yellow status is also unreadable in the light mode, use a darker one.
