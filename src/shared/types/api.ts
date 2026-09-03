@@ -1,18 +1,5 @@
 import type { ContextInfo, NamespaceInfo, PodInfo, PodDetails, FileEntry } from "./kubernetes";
 
-export interface ApiResponse<T> {
-  data: T;
-  error?: string;
-  timestamp: number;
-}
-
-export interface PageInfo {
-  currentPath: string;
-  parentPath: string;
-  canGoBack: boolean;
-  canGoForward: boolean;
-}
-
 export interface ElectronApiBridge {
   getContexts: () => Promise<ContextInfo[]>;
   getNamespaces: (contextName: string) => Promise<NamespaceInfo[]>;
@@ -48,5 +35,3 @@ export interface ElectronApiBridge {
   getThirdPartyLicenses: () => Promise<{ success: true; content: string } | { success: false; error: string }>;
   openThirdPartyLicenses: () => Promise<{ success: true } | { success: false; error: string }>;
 }
-
-export type ConnectionStep = "context" | "namespace" | "pod" | "browse";
