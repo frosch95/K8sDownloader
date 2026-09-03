@@ -37,7 +37,7 @@
     "@vitejs/plugin-react": "^6.1.0",
     "autoprefixer": "^10.5.4",
     "concurrently": "^10.0.5",
-    "electron": "^43.4.1",
+    "electron": "^44.0.0",
     "electron-builder": "^26.15.3",
     "generate-license-file": "^4.2.1",
     "globals": "^17.11.0",
