@@ -15,7 +15,7 @@ import {
   sanitizeContainerPath,
   validateKubernetesIdentifier,
 } from "../utils/kubeconfig";
-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../types";
+import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../shared/types/kubernetes";
 
 // ── formatFileSize ─────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../types";
+import type { ContextInfo, NamespaceInfo, PodInfo, FileEntry } from "../shared/types/kubernetes";
 
 /** Formats a byte count into a human-readable string (e.g., "1.5 MB"). */
 export function formatFileSize(bytes: number): string {
