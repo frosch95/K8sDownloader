@@ -30,8 +30,47 @@ export class AppError extends Error {
     if (error instanceof AppError) return error;
 
     const message = error instanceof Error ? error.message : String(error);
+    const lower = message.toLowerCase();
 
-    // Map common errors to specific codes
+    // Map common errors to specific codes. Order matters: several of kubectl's
+    // own error messages contain "kubectl" *and* a more specific diagnostic
+    // (e.g. "kubectl exec failed: cat: /x: Permission denied"), so the
+    // specific checks must run before the generic 'kubectl' fallback below.
+    if (lower.includes('timed out') || lower.includes('etimedout')) {
+      return new AppError(ErrorCode.TIMEOUT, message);
+    }
+
+    if (lower.includes('permission denied') || lower.includes('forbidden')) {
+      return new AppError(ErrorCode.PERMISSION_DENIED, message);
+    }
+
+    if (
+      lower.includes('econnrefused') ||
+      lower.includes('enotfound') ||
+      lower.includes('eai_again') ||
+      lower.includes('dial tcp') ||
+      lower.includes('no route to host') ||
+      lower.includes('unable to connect to the server')
+    ) {
+      return new AppError(ErrorCode.NETWORK_ERROR, message);
+    }
+
+    if (lower.includes('kubernetes config not found')) {
+      return new AppError(ErrorCode.KUBECONFIG_NOT_FOUND, message);
+    }
+
+    if (/container\s.*\snot found/.test(lower)) {
+      return new AppError(ErrorCode.CONTAINER_NOT_FOUND, message);
+    }
+
+    if (
+      lower.includes('no such file or directory') ||
+      lower.includes('cannot find the file specified') ||
+      lower.includes('the system cannot find the file')
+    ) {
+      return new AppError(ErrorCode.FILE_NOT_FOUND, message);
+    }
+
     if (message.includes('kubectl')) {
       if (message.includes('ENOENT')) {
         return new AppError(ErrorCode.KUBECTL_NOT_INSTALLED, message);
@@ -39,11 +78,11 @@ export class AppError extends Error {
       return new AppError(ErrorCode.KUBECTL_EXEC_FAILED, message);
     }
 
-    if (message.toLowerCase().includes('invalid') || message.toLowerCase().includes('unsupported characters') || message.toLowerCase().includes('traversal')) {
+    if (lower.includes('invalid') || lower.includes('unsupported characters') || lower.includes('traversal')) {
       return new AppError(ErrorCode.INVALID_INPUT, message);
     }
 
-    if (message.toLowerCase().includes('path')) {
+    if (lower.includes('path')) {
       return new AppError(ErrorCode.INVALID_PATH, message);
     }
 

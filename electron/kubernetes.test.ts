@@ -358,6 +358,24 @@ describe("downloadFile", () => {
     await expect(promise).rejects.toThrow(/ENOENT/);
     expect(spawnMock).toHaveBeenCalledTimes(1);
   });
+
+  it("throws a timeout error when cat hangs past the download timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const { children } = queueSpawnAttempts(1);
+
+      const promise = downloadFile(CONTEXT, NAMESPACE, POD, CONTAINER, SOURCE, DEST);
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+      // The real child process would eventually report its own kill; the mock
+      // only needs to fire "close" once the timer has already killed it.
+      children[0].emit("close", null);
+
+      await expect(promise).rejects.toThrow(/timed out/i);
+      expect(children[0].kill).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 // ── listFiles ──────────────────────────────────────────────────────────────
@@ -683,6 +701,14 @@ describe("getPodDetails", () => {
     expect(() => getPodDetails(CONTEXT, NAMESPACE, "bad pod name")).toThrow();
     expect(spawnSyncMock).not.toHaveBeenCalled();
   });
+
+  it("throws a timeout error when kubectl is killed by the spawnSync timeout", () => {
+    // spawnSync kills the child on timeout rather than populating `.error`:
+    // status becomes null and `.signal` carries the kill signal instead.
+    spawnSyncMock.mockReturnValue({ status: null, signal: "SIGTERM", stdout: "", stderr: "" });
+
+    expect(() => getPodDetails(CONTEXT, NAMESPACE, POD)).toThrow(/timed out/i);
+  });
 });
 
 // ── downloadPodLogs ──────────────────────────────────────────────────────────
@@ -742,5 +768,20 @@ describe("downloadPodLogs", () => {
       downloadPodLogs(CONTEXT, NAMESPACE, "bad pod name", CONTAINER, LOGS_DEST)
     ).rejects.toThrow();
     expect(spawnMock).not.toHaveBeenCalled();
+  });
+
+  it("throws a timeout error when kubectl logs hangs past the logs timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const { children } = queueSpawnAttempts(1);
+
+      const promise = downloadPodLogs(CONTEXT, NAMESPACE, POD, CONTAINER, LOGS_DEST);
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+      children[0].emit("close", null);
+
+      await expect(promise).rejects.toThrow(/timed out/i);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

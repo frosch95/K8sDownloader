@@ -473,6 +473,10 @@ export async function downloadFile(
     return;
   }
 
+  if (catAttempt.timedOut) {
+    throw new Error(`kubectl exec timed out after ${DOWNLOAD_TIMEOUT_MS / 1000}s while downloading via cat`);
+  }
+
   // "cat" only fails to *start* on Windows containers (no such binary on PATH).
   // Any other failure (missing file, permission denied, ...) is the real error
   // for this Linux-style attempt and must not be masked by the Windows fallback.
@@ -492,6 +496,11 @@ export async function downloadFile(
     log(`downloadFile: written ${typeAttempt.bytesWritten} bytes via type`);
     return;
   }
+
+  if (typeAttempt.timedOut) {
+    throw new Error(`kubectl exec timed out after ${DOWNLOAD_TIMEOUT_MS / 1000}s while downloading via type`);
+  }
+
   // "cmd" only fails to *start* on Linux containers (no such binary on PATH).
   // A real cmd/type failure (missing file, permission denied, ...) is the real
   // error and must not be masked by the tar fallback.
@@ -509,6 +518,9 @@ export async function downloadFile(
   );
 
   if (!tarAttempt.success) {
+    if (tarAttempt.timedOut) {
+      throw new Error(`kubectl exec timed out after ${DOWNLOAD_TIMEOUT_MS / 1000}s while downloading via tar`);
+    }
     if (isExecStartupError(tarAttempt.stderr)) {
       throw new Error(
         "kubectl exec failed: no supported download tool found in the container " +
@@ -557,6 +569,9 @@ export async function downloadPodLogs(
   }
 
   const result = await runLogsToFile(args, destPath);
+  if (result.timedOut) {
+    throw new Error(`kubectl logs timed out after ${LOGS_TIMEOUT_MS / 1000}s`);
+  }
   if (!result.success) {
     throw new Error(`kubectl logs failed: ${result.stderr || "unknown error"}`);
   }
@@ -570,6 +585,7 @@ interface ExecToFileResult {
   success: boolean;
   stderr: string;
   bytesWritten: number;
+  timedOut: boolean;
 }
 
 /**
@@ -588,8 +604,10 @@ function execToFile(
     const stderrChunks: Buffer[] = [];
     let bytesWritten = 0;
     let settled = false;
+    let timedOut = false;
 
     const timer = setTimeout(() => {
+      timedOut = true;
       child.kill();
     }, timeoutMs);
 
@@ -623,6 +641,7 @@ function execToFile(
           success: code === 0,
           stderr: Buffer.concat(stderrChunks).toString("utf-8").trim(),
           bytesWritten,
+          timedOut,
         });
       });
     });
@@ -653,6 +672,7 @@ interface TarExtractResult {
   success: boolean;
   stderr: string;
   bytesWritten: number;
+  timedOut: boolean;
 }
 
 /**
@@ -672,8 +692,10 @@ function execTarToFile(
     const writeStream = fs.createWriteStream(destPath);
     const stderrChunks: Buffer[] = [];
     let settled = false;
+    let timedOut = false;
 
     const timer = setTimeout(() => {
+      timedOut = true;
       child.kill();
     }, timeoutMs);
 
@@ -803,6 +825,7 @@ function execTarToFile(
           success: code === 0 && state.fileFound,
           stderr,
           bytesWritten,
+          timedOut,
         });
       };
       if (writeStream.writableFinished) {
@@ -930,6 +953,13 @@ function runKubectlRaw(args: string[]): ReturnType<typeof spawnSync> {
       );
     }
     throw new Error(`kubectl failed: ${msg}`);
+  }
+
+  // spawnSync kills the child on timeout (status becomes null, signal is set)
+  // rather than populating result.error, so it needs its own check.
+  if (result.signal) {
+    logError(`runKubectl: timed out (killed with ${result.signal})`);
+    throw new Error(`kubectl command timed out after 30s (killed with ${result.signal})`);
   }
 
   return result;
