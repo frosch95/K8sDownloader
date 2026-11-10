@@ -21,14 +21,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^2.0.1",
+    "@kubernetes/client-node": "^2.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-window": "^2.5.3",
-    "zustand": "^5.0.16"
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.5",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
@@ -43,14 +43,14 @@
     "globals": "^17.14.0",
     "jsdom": "^30.1.3",
     "postcss": "^8.5.32",
-    "tailwindcss": "^4.3.3",
+    "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5",
+    "vite": "^8.3.6",
     "vite-plugin-electron": "^1.2.0",
     "vite-plugin-electron-renderer": "^1.0.0",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-static-copy": "^4.1.1",
-    "vitest": "^5.0.5",
+    "vitest": "^5.1.0",
     "wait-on": "^9.5.1"
   },
   "build": {
